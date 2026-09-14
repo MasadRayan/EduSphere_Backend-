@@ -11,7 +11,6 @@ declare global {
         interface Request {
             user?: {
                 email: string;
-                name: string;
                 userId: string;
                 role: Role;
             }
@@ -19,8 +18,8 @@ declare global {
     }
 }
 
-// auth(Role.ADMIN, Role.USER, Role.Author)
-// auth() => ...requiredRoles => [Role.ADMIN, Role.USER, Role.AUTHOR]
+// auth(Role.ADMIN, Role.STUDENT, Role.INSTRUCTOR)
+// auth() => ...requiredRoles => [Role.ADMIN, Role.STUDENT, Role.INSTRUCTOR]
 export const auth = (...requiredRoles: Role[]) => {
     return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
         const token = req.cookies.accessToken ?
@@ -40,7 +39,7 @@ export const auth = (...requiredRoles: Role[]) => {
             throw new Error(verifiedToken.error);
         }
 
-        const { email, name, userId, role } = verifiedToken.data as JwtPayload;
+        const { email, userId, role } = verifiedToken.data as JwtPayload;
 
         if (requiredRoles.length && !requiredRoles.includes(role)) {
             throw new Error("Forbidden. You don't have permission to access this resource.");
@@ -49,9 +48,6 @@ export const auth = (...requiredRoles: Role[]) => {
         const user = await prisma.user.findUnique({
             where: {
                 id: userId,
-                email,
-                name,
-                role
             }
         });
 
@@ -59,13 +55,21 @@ export const auth = (...requiredRoles: Role[]) => {
             throw new Error("User not found. Please log in again.");
         }
 
-        if (user.status === "BLOCKED") {
+        if (user.isDeleted) {
+            throw new Error("User is deleted. Please contact support.");
+        }
+
+        if (!user.isActive) {
             throw new Error("Your account has been blocked. Please contact support.");
+        }
+
+        // Optional: verify token email/role matches DB
+        if (user.email !== email || user.role !== role) {
+            throw new Error("User credentials mismatch. Please log in again.");
         }
 
         req.user = {
             email,
-            name,
             userId,
             role
         }

@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { JwtPayload, SignOptions } from 'jsonwebtoken'
-import { Role, UserStatus } from '../../../generated/prisma/enums'
+import { Role } from '../../../generated/prisma/enums'
 import config from '../../config'
 import { prisma } from '../../lib/prisma'
 import { jwtUtils } from '../../utils/jwt'
@@ -12,7 +12,7 @@ import {
 
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
-    const { name, password } = payload
+    const { password } = payload
     const email = payload.email.trim().toLowerCase()
 
     const isUserExists = await prisma.user.findUnique({
@@ -27,24 +27,17 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 
     const createdUser = await prisma.user.create({
         data: {
-            name,
             email,
             password: hashedPassword,
-            role: Role.PATIENT,
-            status: UserStatus.ACTIVE,
-            emailVerified: false,
-            patient: {
-                create: { name, email },
-            },
+            role: Role.STUDENT,
+            isActive: true,
         },
         omit: { password: true },
-        include: { patient: true },
     })
 
-    const { patient, ...user } = createdUser
+    const user = createdUser
     const jwtPayload = {
         userId: user.id,
-        name: user.name,
         email: user.email,
         role: user.role
     }
@@ -63,7 +56,6 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 
     return {
         user,
-        patient,
         accessToken,
         refreshToken
     }
@@ -81,12 +73,16 @@ const loginUser = async (payload: ILoginUserPayload) => {
         throw new Error('User not found')
     }
 
-    if (user.status === UserStatus.BLOCKED) {
+    if (user.isDeleted) {
+        throw new Error('User is deleted')
+    }
+
+    if (!user.isActive) {
         throw new Error('User is blocked')
     }
 
-    if (user.isDeleted || user.status === UserStatus.DELETED) {
-        throw new Error('User is deleted')
+    if (!user.password) {
+        throw new Error('Invalid credentials - password not set for this account')
     }
 
     const isPasswordMatched = await bcrypt.compare(password, user.password)
@@ -97,7 +93,6 @@ const loginUser = async (payload: ILoginUserPayload) => {
 
     const jwtPayload = {
         userId: user.id,
-        name: user.name,
         email: user.email,
         role: user.role
     }
@@ -125,9 +120,6 @@ const getMe = async (user: IRequestUser) => {
         where: {
             id: user.userId,
         },
-        include: {
-            patient: true,
-        },
         omit: {
             password: true,
         },
@@ -153,13 +145,12 @@ const refreshToken = async (token: string) => {
         where: { id: data.userId },
     })
 
-    if (!user || user.isDeleted || user.status !== UserStatus.ACTIVE) {
+    if (!user || user.isDeleted || !user.isActive) {
         throw new Error('User is inactive or not found')
     }
 
     const jwtPayload = {
         userId: user.id,
-        name: user.name,
         email: user.email,
         role: user.role
     }

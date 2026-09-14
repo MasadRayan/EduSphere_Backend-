@@ -9,7 +9,7 @@ const registerPatient = catchAsync(async (req: Request, res: Response) => {
     const payload = req.body
     const result = await AuthService.registerPatient(payload)
 
-    const { accessToken, refreshToken, user, patient } = result
+    const { accessToken, refreshToken, user } = result
 
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
@@ -27,12 +27,11 @@ const registerPatient = catchAsync(async (req: Request, res: Response) => {
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: 'Patient registered successfully',
+        message: 'Student registered successfully',
         data: {
             accessToken,
             refreshToken,
             user,
-            patient,
         },
     })
 })

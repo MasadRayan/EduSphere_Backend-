@@ -9,7 +9,7 @@ router.post('/register', AuthController.registerPatient)
 router.post('/login', AuthController.loginUser)
 router.get(
     '/me',
-    auth(Role.ADMIN, Role.DOCTOR, Role.PATIENT, Role.SUPER_ADMIN),
+    auth(Role.ADMIN, Role.INSTRUCTOR, Role.STUDENT),
     AuthController.getMe,
 )
 router.post('/refresh-token', AuthController.refreshToken)
