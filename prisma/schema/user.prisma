@@ -1,14 +1,30 @@
 model User {
-  id           String       @id @default(uuid())
-  email        String       @unique
-  password     String?      
-  googleId     String?      @unique
-  authProvider AuthProvider @default(CREDENTIAL)
-  role         Role
-  isActive     Boolean      @default(true)
-  isDeleted    Boolean      @default(false)
-  deletedAt    DateTime?
+  id                 String       @id @default(uuid())
+  name               String
+  email              String       @unique
+  password           String?
+  emailVerified      Boolean      @default(false)
+  role               Role         @default(STUDENT)
+  status             UserStatus   @default(ACTIVE)
+  needPasswordChange Boolean      @default(false)
+  isDeleted          Boolean      @default(false)
+  deletedAt          DateTime?
 
+  authProvider       AuthProvider @default(CREDENTIAL)
+  googleId           String?      @unique
+
+  imagePublicId      String       @default("")
+  imageURL           String       @default("")
+
+  passwordChangedAt      DateTime?
+  resetPasswordToken     String?
+  resetPasswordExpiresAt DateTime?
+
+  studentProfile    StudentProfile?
+  instructorProfile InstructorProfile?
+  payments          Payment[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

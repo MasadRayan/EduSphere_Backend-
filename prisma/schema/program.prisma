@@ -1,0 +1,21 @@
+model Program {
+  id           String @id @default(uuid())
+  name         String
+  degreeType   String // e.g. "Bachelor's", "Master's"
+  totalCredits Int
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  students StudentProfile[]
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, departmentId])
+  @@index([departmentId])
+  @@map("programs")
+}

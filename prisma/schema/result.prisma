@@ -1,0 +1,20 @@
+model Result {
+  id String @id @default(uuid())
+
+  examId String
+  exam   Exam @relation(fields: [examId], references: [id])
+
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id])
+
+  marksObtained Float
+  grade         String? // computed: A, A-, B+, etc.
+  gradePoint    Float? // computed: 4.0, 3.7, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([examId, studentId])
+  @@index([studentId])
+  @@map("results")
+}

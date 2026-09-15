@@ -1,0 +1,17 @@
+model AuditLog {
+  id String @id @default(uuid())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  action   String // e.g. "ROLE_CHANGE", "REGISTRATION_OVERRIDE"
+  entity   String // e.g. "User", "CourseRegistration"
+  entityId String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}

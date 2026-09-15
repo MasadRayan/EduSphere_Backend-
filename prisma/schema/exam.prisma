@@ -1,0 +1,18 @@
+model Exam {
+  id String @id @default(uuid())
+
+  sectionId String
+  section   Section @relation(fields: [sectionId], references: [id])
+
+  type       ExamType
+  date       DateTime
+  totalMarks Int
+
+  results Result[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+  @@map("exams")
+}

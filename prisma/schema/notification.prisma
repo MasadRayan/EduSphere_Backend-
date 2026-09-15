@@ -1,0 +1,17 @@
+model Notification {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  title   String
+  message String
+  channel NotificationChannel @default(SYSTEM)
+  isRead  Boolean              @default(false)
+  sentAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("notifications")
+}

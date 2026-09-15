@@ -1,0 +1,38 @@
+model Course {
+  id          String @id @default(uuid())
+  code        String @unique
+  title       String
+  creditHours Int
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  sections Section[]
+
+  // Self-referencing many-to-many (a course can require other courses)
+  prerequisites CoursePrerequisite[] @relation("CourseToPrereq")
+  requiredFor   CoursePrerequisite[] @relation("PrereqToCourse")
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([departmentId])
+  @@map("courses")
+}
+
+// Explicit join model for course prerequisites
+model CoursePrerequisite {
+  id String @id @default(uuid())
+
+  courseId String
+  course   Course @relation("CourseToPrereq", fields: [courseId], references: [id], onDelete: Cascade)
+
+  prerequisiteId String
+  prerequisite   Course @relation("PrereqToCourse", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, prerequisiteId])
+  @@map("course_prerequisites")
+}
