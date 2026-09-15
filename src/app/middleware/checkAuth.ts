@@ -18,8 +18,6 @@ declare global {
 	}
 }
 
-// auth(Role.ADMIN, Role.STUDENT, Role.INSTRUCTOR)
-// auth() => ...requiredRoles => [Role.ADMIN, Role.STUDENT, Role.INSTRUCTOR]
 export const auth = (...requiredRoles: Role[]) => {
 	return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
 		const token = req.cookies.accessToken

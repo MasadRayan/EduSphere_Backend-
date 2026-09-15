@@ -29,7 +29,6 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 			email,
 			password: hashedPassword,
 			role: Role.STUDENT,
-			isActive: true,
 		},
 		omit: { password: true },
 	});
@@ -74,10 +73,6 @@ const loginUser = async (payload: ILoginUserPayload) => {
 
 	if (user.isDeleted) {
 		throw new Error("User is deleted");
-	}
-
-	if (!user.isActive) {
-		throw new Error("User is blocked");
 	}
 
 	if (!user.password) {
@@ -151,7 +146,7 @@ const refreshToken = async (token: string) => {
 		where: { id: data.userId },
 	});
 
-	if (!user || user.isDeleted || !user.isActive) {
+	if (!user || user.isDeleted) {
 		throw new Error("User is inactive or not found");
 	}
 
