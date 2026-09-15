@@ -24,4 +24,6 @@ export default {
 	cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
 	smtp_user: process.env.SMTP_USER!,
 	smtp_password: process.env.SMTP_PASSWORD!,
+	email_sender: process.env.EMAIL_SENDER ?? process.env.SMTP_USER!,
+	google_client_id: process.env.GOOGLE_CLIENT_ID!,
 };

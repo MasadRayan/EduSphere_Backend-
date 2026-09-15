@@ -60,10 +60,6 @@ export const auth = (...requiredRoles: Role[]) => {
 			throw new Error("User is deleted. Please contact support.");
 		}
 
-		if (!user.isActive) {
-			throw new Error("Your account has been blocked. Please contact support.");
-		}
-
 		// Optional: verify token email/role matches DB
 		if (user.email !== email || user.role !== role) {
 			throw new Error("User credentials mismatch. Please log in again.");
