@@ -47,15 +47,9 @@ const ResetPasswordZodSchema = z.object({
 	otp: z.string().length(6),
 });
 
-// Aliases for backward compatibility with previous Patient naming
-const PatientRegistrationZodSchema = StudentRegistrationZodSchema;
-const PatientEmailVerifyZodSchema = StudentEmailVerifyZodSchema;
-
 export const UserValidation = {
 	StudentRegistrationZodSchema,
-	PatientRegistrationZodSchema,
 	StudentEmailVerifyZodSchema,
-	PatientEmailVerifyZodSchema,
 	LoginZodSchema,
 	ForgotPasswordZodSchema,
 	ResetPasswordZodSchema,

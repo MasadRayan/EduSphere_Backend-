@@ -21,7 +21,7 @@ import type {
 	IForgotPasswordPayload,
 	IGoogleLoginPayload,
 	ILoginUserPayload,
-	IRegisterPatientPayload,
+	IRegisterStudentPayload,
 	IRequestUser,
 	IResetPasswordPayload,
 	IVerifyEmailPayload,
@@ -29,7 +29,7 @@ import type {
 
 const getSaltRounds = () => Number(config.bcrypt_salt_rounds) || 10;
 
-const registerPatient = async (payload: IRegisterPatientPayload) => {
+const registerStudent = async (payload: IRegisterStudentPayload) => {
 	const { name, password } = payload;
 	const email = payload.email.trim().toLowerCase();
 
@@ -94,7 +94,7 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
 	});
 };
 
-const verifyPatientEmail = async (payload: IVerifyEmailPayload) => {
+const verifyStudentEmail = async (payload: IVerifyEmailPayload) => {
 	const otp = payload.otp;
 	const email = payload.email.trim().toLowerCase();
 
@@ -134,7 +134,7 @@ const verifyPatientEmail = async (payload: IVerifyEmailPayload) => {
 		throw new AppError(httpStatus.NOT_FOUND, "Registration Data Not Found");
 	}
 
-	const studentPayload: IRegisterPatientPayload = JSON.parse(redisStudentData);
+	const studentPayload: IRegisterStudentPayload = JSON.parse(redisStudentData);
 
 	const createdUser = await prisma.user.create({
 		data: {
@@ -617,8 +617,8 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
 };
 
 export const AuthService = {
-	registerPatient,
-	verifyPatientEmail,
+	registerStudent,
+	verifyStudentEmail,
 	loginUser,
 	getMe,
 	refreshToken,

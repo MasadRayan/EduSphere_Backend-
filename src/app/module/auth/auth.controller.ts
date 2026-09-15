@@ -5,9 +5,9 @@ import { sendResponse } from "../../utils/sendResponse";
 import type { IRequestUser } from "./auth.interface";
 import { AuthService } from "./auth.service";
 
-const registerPatient = catchAsync(async (req: Request, res: Response) => {
+const registerStudent = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
-	await AuthService.registerPatient(payload);
+	await AuthService.registerStudent(payload);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -17,9 +17,9 @@ const registerPatient = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const verifyPatientEmail = catchAsync(async (req: Request, res: Response) => {
+const verifyStudentEmail = catchAsync(async (req: Request, res: Response) => {
 	const payload = req.body;
-	const result = await AuthService.verifyPatientEmail(payload);
+	const result = await AuthService.verifyStudentEmail(payload);
 
 	const { accessToken, refreshToken, user, studentProfile } = result;
 
@@ -179,8 +179,8 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const AuthController = {
-	registerPatient,
-	verifyPatientEmail,
+	registerStudent,
+	verifyStudentEmail,
 	loginUser,
 	getMe,
 	refreshToken,
