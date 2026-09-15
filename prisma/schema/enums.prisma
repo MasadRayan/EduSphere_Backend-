@@ -11,6 +11,11 @@ enum UserStatus {
   DELETED
 }
 
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
 
 enum AuthProvider {
   CREDENTIAL

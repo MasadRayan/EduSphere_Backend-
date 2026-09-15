@@ -1,0 +1,25 @@
+model InstructorApplication {
+  id           String            @id @default(uuid())
+  name         String
+  email        String            @unique
+  phone        String?
+
+  departmentId String
+  department   Department        @relation(fields: [departmentId], references: [id])
+
+  designation  String?
+  resumeUrl    String?           // Cloudinary
+  coverNote    String?
+
+  status       ApplicationStatus @default(PENDING)
+  reviewedById String?           // admin userId who reviewed
+  reviewNote   String?
+  reviewedAt   DateTime?
+
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([status])
+  @@index([departmentId])
+  @@map("instructor_applications")
+}
