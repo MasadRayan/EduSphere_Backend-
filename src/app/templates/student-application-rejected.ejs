@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Application update from EduSphere</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a1120;font-family:Helvetica,Arial,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:32px 24px;">
+    <div style="background:#fffcf7;border-radius:20px;padding:36px 32px;text-align:center;border:1px solid rgba(212,168,83,0.28);">
+      <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#17355e;font-weight:700;opacity:0.7;margin-bottom:12px;">Application Status · Not Accepted</div>
+      <h1 style="margin:0;font-size:28px;line-height:32px;color:#0a1120;">Hello <%= name %>, your application was not approved</h1>
+      <p style="font-size:14px;line-height:22px;color:#4b5563;max-width:420px;margin:14px auto 0;">
+        Your enrollment application<% if (departmentName) { %> for <strong style="color:#0a1120;"><%= departmentName %></strong><% } %> has been reviewed and was not approved at this time.
+      </p>
+      <% if (reviewNote) { %>
+      <div style="margin:22px auto 0;background:#fff7f5;border:1px solid #f3d0c3;border-radius:12px;padding:16px 18px;max-width:420px;text-align:left;">
+        <div style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#b45309;font-weight:700;margin-bottom:6px;">Admin Note</div>
+        <div style="font-size:13.5px;line-height:20px;color:#7c2d12;"><%= reviewNote %></div>
+      </div>
+      <% } %>
+      <div style="margin-top:14px;font-size:12px;color:#6b7280;">You can update your application and resubmit it for another review.</div>
+      <div style="margin-top:12px;font-size:12px;color:#6b7280;">Questions? Contact <a href="mailto:support@edusphere.edu" style="color:#17355e;font-weight:600;">support@edusphere.edu</a></div>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:rgba(255,252,247,0.55);">© <%= new Date().getFullYear() %> EduSphere, Inc.</div>
+  </div>
+</body>
+</html>

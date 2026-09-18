@@ -8,6 +8,7 @@ model Program {
   department   Department @relation(fields: [departmentId], references: [id])
 
   students StudentProfile[]
+  studentApplications StudentApplication[]
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime?

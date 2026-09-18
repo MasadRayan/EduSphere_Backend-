@@ -21,6 +21,7 @@ model User {
   resetPasswordExpiresAt DateTime?
 
   studentProfile    StudentProfile?
+  studentApplication StudentApplication?
   instructorProfile InstructorProfile?
   payments          Payment[]
   auditLogs         AuditLog[]

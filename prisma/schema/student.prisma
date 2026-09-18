@@ -3,10 +3,13 @@ model StudentProfile {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  studentId String @unique // university roll/registration number
+  studentId String @unique @default(uuid()) // university roll/registration number
   fullName  String
   phone     String?
   avatarUrl String? // Cloudinary URL
+  avatarPublicId String? // Cloudinary public_id for cleanup
+
+  studentStatus StudentStatus @default(PENDING)
 
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id])

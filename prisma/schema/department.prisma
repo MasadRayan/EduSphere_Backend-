@@ -8,6 +8,7 @@ model Department {
   students    StudentProfile[]
   instructors InstructorProfile[]
   applications InstructorApplication[]
+  studentApplications StudentApplication[]
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime?

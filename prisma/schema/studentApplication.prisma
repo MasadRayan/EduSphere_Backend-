@@ -1,0 +1,31 @@
+model StudentApplication {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  fullName       String
+  phone          String?
+  avatarUrl      String?
+  avatarPublicId String?
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  programId String
+  program   Program @relation(fields: [programId], references: [id])
+
+  enrollmentYear Int
+
+  status       ApplicationStatus @default(PENDING)
+  reviewedById String?
+  reviewNote   String?
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId])
+  @@index([status])
+  @@index([departmentId])
+  @@map("student_applications")
+}
