@@ -21,7 +21,6 @@ import type {
 	IStudentApplyPayload,
 	IUpdateMyProfilePayload,
 } from "./student.interface";
-import { th } from "zod/v4/locales/index.js";
 
 type AttendanceGroup = {
 	sectionId: string;
@@ -77,19 +76,19 @@ const getStudentProfileId = async (userId: string) => {
 		);
 	}
 
-    if (profile.studentStatus === "INACTIVE") {
-        throw new AppError(
-            httpStatus.FORBIDDEN,
-            "Your student profile is inactive. Please contact the administration for assistance.",
-        );
-    }
+	if (profile.studentStatus === "INACTIVE") {
+		throw new AppError(
+			httpStatus.FORBIDDEN,
+			"Your student profile is inactive. Please contact the administration for assistance.",
+		);
+	}
 
-    if (profile.isDeleted) {
-        throw new AppError(
-            httpStatus.FORBIDDEN,
-            "Your student profile is deleted. Please contact the administration for assistance.",
-        );
-    }
+	if (profile.isDeleted) {
+		throw new AppError(
+			httpStatus.FORBIDDEN,
+			"Your student profile is deleted. Please contact the administration for assistance.",
+		);
+	}
 
 	return profile.id;
 };
