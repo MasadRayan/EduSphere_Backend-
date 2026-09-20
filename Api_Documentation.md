@@ -425,3 +425,1207 @@ All endpoints return responses in this shape:
 |--------|----------|----------|----------|------|
 | `accessToken` | 24 hours | Yes | none | `/` |
 | `refreshToken` | 7 days | Yes | none | `/` |
+
+---
+
+# EduSphere — Student Module API Documentation
+
+> **Base URL:** `http://localhost:8000/api/student`  
+> **Content-Type:** `application/json` (except avatar upload — `multipart/form-data`)  
+> **Auth:** Every route requires a valid `accessToken` (cookie or `Authorization: Bearer <token>`). Route-level role guards are listed per endpoint.
+
+---
+
+## 1. Apply for Enrollment
+
+Submits a student enrollment application for admin review. `departmentName` and `programName` are resolved to IDs by the server. Only possible before a `StudentProfile` exists.
+
+```
+POST /api/student/apply
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Request Body
+
+| Field             | Type        | Required | Rules |
+|-------------------|-------------|----------|-------|
+| `fullName`        | string      | Yes      | 3–60 characters |
+| `phone`           | string      | No       | —
+| `departmentName`  | string      | Yes      | Must exist in DB |
+| `programName`     | string      | Yes      | Must exist in chosen department |
+| `enrollmentYear`  | number      | Yes      | Integer, 2000 – currentYear+1 |
+
+### Demo Input
+
+```json
+{
+  "fullName": "Masad Rayan",
+  "phone": "+8801712345678",
+  "departmentName": "Computer Science",
+  "programName": "B.Sc in Computer Science",
+  "enrollmentYear": 2026
+}
+```
+
+### Response (201 Created)
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Enrollment application submitted successfully. Pending admin approval.",
+  "data": {
+    "id": "a1f2c3d4-e5f6-7890-abcd-ef1234567890",
+    "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+    "fullName": "Masad Rayan",
+    "phone": "+8801712345678",
+    "avatarUrl": null,
+    "avatarPublicId": null,
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "programId": "66666666-7777-8888-9999-000000000000",
+    "enrollmentYear": 2026,
+    "status": "PENDING",
+    "reviewedById": null,
+    "reviewNote": null,
+    "reviewedAt": null,
+    "createdAt": "2026-09-18T10:30:00.000Z",
+    "updatedAt": "2026-09-18T10:30:00.000Z",
+    "department": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "name": "Computer Science",
+      "code": "CSE",
+      "isDeleted": false,
+      "createdAt": "2026-01-01T09:00:00.000Z",
+      "updatedAt": "2026-01-01T09:00:00.000Z"
+    },
+    "program": {
+      "id": "66666666-7777-8888-9999-000000000000",
+      "name": "B.Sc in Computer Science",
+      "degreeType": "Bachelor's",
+      "totalCredits": 140,
+      "departmentId": "11111111-2222-3333-4444-555555555555",
+      "isDeleted": false,
+      "createdAt": "2026-01-01T09:00:00.000Z",
+      "updatedAt": "2026-01-01T09:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 409 | `"You are already enrolled"` |
+| 409 | `"Application already submitted. You can update and resubmit it."` |
+| 404 | `"Department not found"` |
+| 404 | `"Program not found for this department"` |
+| 400 | Validation error (invalid body shape) |
+
+---
+
+## 2. Update / Resubmit Application
+
+Edits an existing `PENDING` or `REJECTED` application and resets it to `PENDING` for a new review. Cannot update an `APPROVED` application.
+
+```
+PUT /api/student/apply
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Request Body
+
+Same shape as `POST /api/student/apply`.
+
+### Demo Input
+
+```json
+{
+  "fullName": "Masad Hasan Rayan",
+  "phone": "+8801712345678",
+  "departmentName": "Computer Science",
+  "programName": "B.Sc in Software Engineering",
+  "enrollmentYear": 2026
+}
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Enrollment application updated and resubmitted successfully",
+  "data": {
+    "id": "a1f2c3d4-e5f6-7890-abcd-ef1234567890",
+    "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+    "fullName": "Masad Hasan Rayan",
+    "phone": "+8801712345678",
+    "avatarUrl": null,
+    "avatarPublicId": null,
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "programId": "66666666-7777-8888-9999-000000000000",
+    "enrollmentYear": 2026,
+    "status": "PENDING",
+    "reviewedById": null,
+    "reviewNote": null,
+    "reviewedAt": null,
+    "createdAt": "2026-09-18T10:30:00.000Z",
+    "updatedAt": "2026-09-18T11:02:00.000Z",
+    "department": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "name": "Computer Science",
+      "code": "CSE"
+    },
+    "program": {
+      "id": "66666666-7777-8888-9999-000000000000",
+      "name": "B.Sc in Software Engineering",
+      "degreeType": "Bachelor's",
+      "totalCredits": 141,
+      "departmentId": "11111111-2222-3333-4444-555555555555"
+    }
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Application not found"` |
+| 409 | `"Application already approved"` |
+| 404 | `"Department not found"` / `"Program not found for this department"` |
+
+---
+
+## 3. Get My Application
+
+Returns the current user's enrollment application (or `null` if none exists).
+
+```
+GET /api/student/application
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Application fetched successfully",
+  "data": {
+    "id": "a1f2c3d4-e5f6-7890-abcd-ef1234567890",
+    "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+    "fullName": "Masad Rayan",
+    "phone": "+8801712345678",
+    "avatarUrl": null,
+    "avatarPublicId": null,
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "programId": "66666666-7777-8888-9999-000000000000",
+    "enrollmentYear": 2026,
+    "status": "PENDING",
+    "reviewedById": null,
+    "reviewNote": null,
+    "reviewedAt": null,
+    "createdAt": "2026-09-18T10:30:00.000Z",
+    "updatedAt": "2026-09-18T10:30:00.000Z",
+    "department": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "name": "Computer Science",
+      "code": "CSE"
+    },
+    "program": {
+      "id": "66666666-7777-8888-9999-000000000000",
+      "name": "B.Sc in Computer Science",
+      "degreeType": "Bachelor's",
+      "totalCredits": 140,
+      "departmentId": "11111111-2222-3333-4444-555555555555"
+    }
+  }
+}
+```
+
+> If no application exists, `data` returns `null`.
+
+---
+
+## 4. Get My Info
+
+Returns the full user profile: the `User` row, linked `StudentProfile` (with department/program) and `StudentApplication` (with department/program), if they exist.
+
+```
+GET /api/student/me
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "User profile fetched successfully",
+  "data": {
+    "id": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+    "name": "Masad Rayan",
+    "email": "masad@example.com",
+    "password": null,
+    "emailVerified": true,
+    "role": "STUDENT",
+    "status": "ACTIVE",
+    "needPasswordChange": false,
+    "isDeleted": false,
+    "deletedAt": null,
+    "authProvider": "CREDENTIAL",
+    "googleId": null,
+    "imagePublicId": "",
+    "imageURL": "",
+    "passwordChangedAt": null,
+    "resetPasswordToken": null,
+    "resetPasswordExpiresAt": null,
+    "createdAt": "2026-09-18T09:00:00.000Z",
+    "updatedAt": "2026-09-18T12:00:00.000Z",
+    "studentProfile": {
+      "id": "c7d8e9f0-1111-2222-3333-444455556666",
+      "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+      "studentId": "CS-2026-0001",
+      "fullName": "Masad Rayan",
+      "phone": "+8801712345678",
+      "avatarUrl": "https://res.cloudinary.com/demo/image/upload/v1700000000/avatars/abc123.jpg",
+      "avatarPublicId": "avatars/abc123",
+      "departmentId": "11111111-2222-3333-4444-555555555555",
+      "programId": "66666666-7777-8888-9999-000000000000",
+      "enrollmentYear": 2026,
+      "cgpa": 3.75,
+      "isDeleted": false,
+      "deletedAt": null,
+      "createdAt": "2026-09-18T12:00:00.000Z",
+      "updatedAt": "2026-09-18T12:05:00.000Z",
+      "department": {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "name": "Computer Science",
+        "code": "CSE"
+      },
+      "program": {
+        "id": "66666666-7777-8888-9999-000000000000",
+        "name": "B.Sc in Computer Science",
+        "degreeType": "Bachelor's",
+        "totalCredits": 140,
+        "departmentId": "11111111-2222-3333-4444-555555555555"
+      }
+    },
+    "studentApplication": {
+      "id": "a1f2c3d4-e5f6-7890-abcd-ef1234567890",
+      "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+      "fullName": "Masad Rayan",
+      "phone": "+8801712345678",
+      "avatarUrl": null,
+      "avatarPublicId": null,
+      "departmentId": "11111111-2222-3333-4444-555555555555",
+      "programId": "66666666-7777-8888-9999-000000000000",
+      "enrollmentYear": 2026,
+      "status": "APPROVED",
+      "reviewedById": "77778888-9999-0000-1111-222233334444",
+      "reviewNote": "Welcome aboard!",
+      "reviewedAt": "2026-09-18T12:00:00.000Z",
+      "createdAt": "2026-09-18T10:30:00.000Z",
+      "updatedAt": "2026-09-18T12:00:00.000Z",
+      "department": {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "name": "Computer Science",
+        "code": "CSE"
+      },
+      "program": {
+        "id": "66666666-7777-8888-9999-000000000000",
+        "name": "B.Sc in Computer Science",
+        "degreeType": "Bachelor's",
+        "totalCredits": 140,
+        "departmentId": "11111111-2222-3333-4444-555555555555"
+      }
+    }
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"User not found"` |
+
+---
+
+## 5. Update My Profile
+
+Updates `fullName` and/or `phone` on the student's `StudentProfile`. If `fullName` changes, the `User.name` is synced too.
+
+```
+PATCH /api/student/profile
+```
+
+### Auth & Roles
+
+`STUDENT` (requires an approved/enrolled student profile)
+
+### Request Body
+
+| Field      | Type   | Required | Rules |
+|------------|--------|----------|-------|
+| `fullName` | string | No       | 3–60 characters |
+| `phone`    | string | No       | — |
+
+### Demo Input
+
+```json
+{
+  "fullName": "Masad Hasan Rayan",
+  "phone": "+8801987654321"
+}
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Profile updated successfully",
+  "data": {
+    "id": "c7d8e9f0-1111-2222-3333-444455556666",
+    "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+    "studentId": "CS-2026-0001",
+    "fullName": "Masad Hasan Rayan",
+    "phone": "+8801987654321",
+    "avatarUrl": "https://res.cloudinary.com/demo/image/upload/v1700000000/avatars/abc123.jpg",
+    "avatarPublicId": "avatars/abc123",
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "programId": "66666666-7777-8888-9999-000000000000",
+    "enrollmentYear": 2026,
+    "cgpa": 3.75,
+    "department": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "name": "Computer Science",
+      "code": "CSE"
+    },
+    "program": {
+      "id": "66666666-7777-8888-9999-000000000000",
+      "name": "B.Sc in Computer Science",
+      "degreeType": "Bachelor's",
+      "totalCredits": 140,
+      "departmentId": "11111111-2222-3333-4444-555555555555"
+    }
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 403 | `"Student profile not found. Please complete your enrollment application first."` |
+
+---
+
+## 6. Upload Profile Image
+
+Uploads a profile picture to Cloudinary. Works in two states:
+- **No `StudentProfile` yet** → writes the image to the `PENDING`/`REJECTED` application (carried over on approval).
+- **Enrolled** → writes to the `StudentProfile`. The previous Cloudinary image is destroyed.
+
+```
+PATCH /api/student/avatar
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Request Body
+
+`multipart/form-data` — field name `avatar`
+
+| Field    | Type      | Required | Rules |
+|----------|-----------|----------|-------|
+| `avatar` | file      | Yes      | `jpeg`, `png`, `webp`, `gif`; max 5 MB |
+
+### Demo Request (curl)
+
+```bash
+curl -X PATCH http://localhost:8000/api/student/avatar \
+  -H "Authorization: Bearer <accessToken>" \
+  -F "avatar=@/path/to/profile.jpg"
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Profile image updated successfully",
+  "data": {
+    "id": "c7d8e9f0-1111-2222-3333-444455556666",
+    "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+    "studentId": "CS-2026-0001",
+    "fullName": "Masad Rayan",
+    "phone": "+8801712345678",
+    "avatarUrl": "https://res.cloudinary.com/demo/image/upload/v1700000000/avatars/newImg987.jpg",
+    "avatarPublicId": "avatars/newImg987",
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "programId": "66666666-7777-8888-9999-000000000000",
+    "enrollmentYear": 2026,
+    "cgpa": 3.75,
+    "department": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "name": "Computer Science",
+      "code": "CSE"
+    },
+    "program": {
+      "id": "66666666-7777-8888-9999-000000000000",
+      "name": "B.Sc in Computer Science",
+      "degreeType": "Bachelor's",
+      "totalCredits": 140,
+      "departmentId": "11111111-2222-3333-4444-555555555555"
+    }
+  }
+}
+```
+
+> 🟡 Before enrollment, `data` is the updated `StudentApplication` object instead.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 400 | `"No image uploaded"` / `"Only image files are allowed"` / Multer size error |
+| 403 | `"Apply for enrollment before uploading a profile image"` |
+| 409 | `"Profile image cannot be updated right now"` |
+
+---
+
+## 7. List Registered Courses
+
+Returns the current student's `ENROLLED` and `COMPLETED` course registrations with section, course, semester, and instructor info.
+
+```
+GET /api/student/registered-courses
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Registered courses fetched successfully",
+  "data": [
+    {
+      "id": "r1e2d3c4-b5a6-7980-1a2b-3c4d5e6f7890",
+      "studentId": "c7d8e9f0-1111-2222-3333-444455556666",
+      "sectionId": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+      "status": "ENROLLED",
+      "registeredAt": "2026-08-20T09:00:00.000Z",
+      "isDeleted": false,
+      "deletedAt": null,
+      "section": {
+        "id": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+        "sectionCode": "A",
+        "courseId": "cc1d2e3f-4a5b-6c7d-8e9f-000000000000",
+        "semesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+        "instructorId": "ip1d2e3f-4a5b-6c7d-8e9f-222222222222",
+        "capacity": 40,
+        "schedule": "Sun/Tue 10:00-11:30",
+        "isDeleted": false,
+        "deletedAt": null,
+        "createdAt": "2026-07-01T08:00:00.000Z",
+        "updatedAt": "2026-07-01T08:00:00.000Z",
+        "course": {
+          "id": "cc1d2e3f-4a5b-6c7d-8e9f-000000000000",
+          "code": "CSE-2100",
+          "title": "Data Structures",
+          "creditHours": 3,
+          "departmentId": "11111111-2222-3333-4444-555555555555",
+          "isDeleted": false,
+          "deletedAt": null,
+          "createdAt": "2026-01-01T09:00:00.000Z",
+          "updatedAt": "2026-01-01T09:00:00.000Z"
+        },
+        "semester": {
+          "id": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+          "name": "Fall",
+          "year": 2026,
+          "startDate": "2026-08-01T00:00:00.000Z",
+          "endDate": "2026-12-15T00:00:00.000Z",
+          "isActive": true,
+          "createdAt": "2026-06-01T08:00:00.000Z",
+          "updatedAt": "2026-06-01T08:00:00.000Z"
+        },
+        "instructor": {
+          "id": "ip1d2e3f-4a5b-6c7d-8e9f-222222222222",
+          "userId": "u9a8b7c6-5d4e-3f2a-1b0c-9d8e7f6a5b4c",
+          "fullName": "Dr. Nusrat Jahan",
+          "phone": null,
+          "avatarUrl": null,
+          "designation": "Associate Professor",
+          "departmentId": "11111111-2222-3333-4444-555555555555",
+          "user": {
+            "name": "Dr. Nusrat Jahan",
+            "email": "nusrat@edusphere.edu"
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 403 | `"Student profile not found. Please complete your enrollment application first."` |
+
+---
+
+## 8. Registered Course Details
+
+Returns a single registration (any status) with the full section detail, per-exam results, and the student's attendance records for that section.
+
+```
+GET /api/student/registered-courses/:id
+```
+
+### Path Parameters
+
+`id` — the `CourseRegistration` id (uuid)
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Registered course details fetched successfully",
+  "data": {
+    "id": "r1e2d3c4-b5a6-7980-1a2b-3c4d5e6f7890",
+    "studentId": "c7d8e9f0-1111-2222-3333-444455556666",
+    "sectionId": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+    "status": "ENROLLED",
+    "registeredAt": "2026-08-20T09:00:00.000Z",
+    "isDeleted": false,
+    "deletedAt": null,
+    "section": {
+      "id": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+      "sectionCode": "A",
+      "courseId": "cc1d2e3f-4a5b-6c7d-8e9f-000000000000",
+      "semesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+      "instructorId": "ip1d2e3f-4a5b-6c7d-8e9f-222222222222",
+      "capacity": 40,
+      "schedule": "Sun/Tue 10:00-11:30",
+      "isDeleted": false,
+      "deletedAt": null,
+      "createdAt": "2026-07-01T08:00:00.000Z",
+      "updatedAt": "2026-07-01T08:00:00.000Z",
+      "course": {
+        "id": "cc1d2e3f-4a5b-6c7d-8e9f-000000000000",
+        "code": "CSE-2100",
+        "title": "Data Structures",
+        "creditHours": 3,
+        "departmentId": "11111111-2222-3333-4444-555555555555"
+      },
+      "semester": {
+        "id": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+        "name": "Fall",
+        "year": 2026,
+        "startDate": "2026-08-01T00:00:00.000Z",
+        "endDate": "2026-12-15T00:00:00.000Z",
+        "isActive": true
+      },
+      "instructor": {
+        "id": "ip1d2e3f-4a5b-6c7d-8e9f-222222222222",
+        "userId": "u9a8b7c6-5d4e-3f2a-1b0c-9d8e7f6a5b4c",
+        "fullName": "Dr. Nusrat Jahan",
+        "phone": null,
+        "avatarUrl": null,
+        "designation": "Associate Professor",
+        "departmentId": "11111111-2222-3333-4444-555555555555",
+        "user": {
+          "name": "Dr. Nusrat Jahan",
+          "email": "nusrat@edusphere.edu"
+        }
+      },
+      "exams": [
+        {
+          "id": "e1f2a3b4-c5d6-e7f8-9a0b-1c2d3e4f5a6b",
+          "sectionId": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+          "type": "QUIZ",
+          "date": "2026-09-10T09:00:00.000Z",
+          "totalMarks": 20,
+          "createdAt": "2026-09-01T08:00:00.000Z",
+          "updatedAt": "2026-09-01T08:00:00.000Z",
+          "results": [
+            {
+              "id": "rl1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
+              "examId": "e1f2a3b4-c5d6-e7f8-9a0b-1c2d3e4f5a6b",
+              "studentId": "c7d8e9f0-1111-2222-3333-444455556666",
+              "marksObtained": 17,
+              "grade": "A-",
+              "gradePoint": 3.7,
+              "createdAt": "2026-09-15T08:00:00.000Z",
+              "updatedAt": "2026-09-15T08:00:00.000Z"
+            }
+          ]
+        },
+        {
+          "id": "e2f3b4c5-d6e7-f8a9-0b1c-2d3e4f5a6b7c",
+          "sectionId": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+          "type": "MIDTERM",
+          "date": "2026-10-01T09:00:00.000Z",
+          "totalMarks": 50,
+          "createdAt": "2026-09-20T08:00:00.000Z",
+          "updatedAt": "2026-09-20T08:00:00.000Z",
+          "results": []
+        }
+      ],
+      "attendances": [
+        {
+          "id": "at1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
+          "studentId": "c7d8e9f0-1111-2222-3333-444455556666",
+          "sectionId": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+          "date": "2026-09-05T00:00:00.000Z",
+          "status": "PRESENT",
+          "createdAt": "2026-09-05T10:00:00.000Z",
+          "updatedAt": "2026-09-05T10:00:00.000Z"
+        },
+        {
+          "id": "at2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e",
+          "studentId": "c7d8e9f0-1111-2222-3333-444455556666",
+          "sectionId": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+          "date": "2026-09-10T00:00:00.000Z",
+          "status": "PRESENT",
+          "createdAt": "2026-09-10T10:00:00.000Z",
+          "updatedAt": "2026-09-10T10:00:00.000Z"
+        }
+      ]
+    }
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Registration not found"` |
+| 403 | `"Student profile not found. Please complete your enrollment application first."` |
+
+---
+
+## 9. Attendance Details
+
+Returns the student's attendance grouped by section, with per-status counts and percentage. `attended = PRESENT + LATE + EXCUSED`.
+
+```
+GET /api/student/attendance
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Attendance details fetched successfully",
+  "data": [
+    {
+      "sectionId": "s1a2b3c4-d5e6-f7a8-9b0c-1d2e3f4a5b6c",
+      "sectionCode": "A",
+      "course": {
+        "code": "CSE-2100",
+        "title": "Data Structures",
+        "creditHours": 3
+      },
+      "semester": "Fall 2026",
+      "total": 10,
+      "present": 8,
+      "absent": 1,
+      "late": 1,
+      "excused": 0,
+      "percentage": 90,
+      "records": [
+        {
+          "date": "2026-09-05T00:00:00.000Z",
+          "status": "PRESENT"
+        },
+        {
+          "date": "2026-09-10T00:00:00.000Z",
+          "status": "PRESENT"
+        },
+        {
+          "date": "2026-09-12T00:00:00.000Z",
+          "status": "LATE"
+        },
+        {
+          "date": "2026-09-17T00:00:00.000Z",
+          "status": "ABSENT"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 403 | `"Student profile not found. Please complete your enrollment application first."` |
+
+---
+
+## 10. Get My Grades
+
+Returns the student's exam results grouped by course (section), including the computed average grade point per course.
+
+```
+GET /api/student/grades
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Grades fetched successfully",
+  "data": [
+    {
+      "course": {
+        "code": "CSE-2100",
+        "title": "Data Structures",
+        "creditHours": 3
+      },
+      "semester": "Fall 2026",
+      "sectionCode": "A",
+      "exams": [
+        {
+          "type": "QUIZ",
+          "date": "2026-09-10T09:00:00.000Z",
+          "totalMarks": 20,
+          "marksObtained": 17,
+          "grade": "A-",
+          "gradePoint": 3.7
+        },
+        {
+          "type": "MIDTERM",
+          "date": "2026-10-01T09:00:00.000Z",
+          "totalMarks": 50,
+          "marksObtained": 41,
+          "grade": "A",
+          "gradePoint": 4.0
+        }
+      ],
+      "totalMarks": 70,
+      "marksObtained": 58,
+      "averageGradePoint": 3.85
+    }
+  ]
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 403 | `"Student profile not found. Please complete your enrollment application first."` |
+
+---
+
+## 11. Get Grade Details for a Registration
+
+Returns detailed grade + attendance info for one course registration: per-exam results, attendance summary, and the course's average grade point.
+
+```
+GET /api/student/grades/:id
+```
+
+### Path Parameters
+
+`id` — the `CourseRegistration` id (uuid)
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Grade details fetched successfully",
+  "data": {
+    "registrationId": "r1e2d3c4-b5a6-7980-1a2b-3c4d5e6f7890",
+    "status": "ENROLLED",
+    "course": {
+      "id": "cc1d2e3f-4a5b-6c7d-8e9f-000000000000",
+      "code": "CSE-2100",
+      "title": "Data Structures",
+      "creditHours": 3,
+      "departmentId": "11111111-2222-3333-4444-555555555555"
+    },
+    "semester": {
+      "id": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+      "name": "Fall",
+      "year": 2026,
+      "startDate": "2026-08-01T00:00:00.000Z",
+      "endDate": "2026-12-15T00:00:00.000Z",
+      "isActive": true
+    },
+    "sectionCode": "A",
+    "attendance": {
+      "totalClasses": 10,
+      "attendedClasses": 9,
+      "percentage": 90
+    },
+    "exams": [
+      {
+        "examId": "e1f2a3b4-c5d6-e7f8-9a0b-1c2d3e4f5a6b",
+        "type": "QUIZ",
+        "date": "2026-09-10T09:00:00.000Z",
+        "totalMarks": 20,
+        "marksObtained": 17,
+        "grade": "A-",
+        "gradePoint": 3.7
+      },
+      {
+        "examId": "e2f3b4c5-d6e7-f8a9-0b1c-2d3e4f5a6b7c",
+        "type": "MIDTERM",
+        "date": "2026-10-01T09:00:00.000Z",
+        "totalMarks": 50,
+        "marksObtained": 41,
+        "grade": "A",
+        "gradePoint": 4.0
+      }
+    ],
+    "averageGradePoint": 3.85
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Registration not found"` |
+| 403 | `"Student profile not found. Please complete your enrollment application first."` |
+
+---
+
+## 12. Get My CGPA
+
+Computes and returns the student's CGPA (weighted by credit hours) from results of `COMPLETED` course registrations. Also persists the value to `StudentProfile.cgpa`.
+
+```
+GET /api/student/cgpa
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "CGPA fetched successfully",
+  "data": {
+    "cgpa": 3.75,
+    "totalCredits": 45,
+    "courseCount": 15
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 403 | `"Student profile not found. Please complete your enrollment application first."` |
+
+---
+
+## 13. List All Applications (Admin)
+
+Returns all student applications, optionally filtered by `status`. Only users with `ADMIN` or `SUPER_ADMIN` role can access.
+
+```
+GET /api/student/applications?status=PENDING
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN`
+
+### Query Parameters
+
+| Parameter | Type   | Required | Values |
+|-----------|--------|----------|--------|
+| `status`  | string | No       | `PENDING`, `APPROVED`, `REJECTED` |
+
+### Demo Request
+
+```
+GET /api/student/applications?status=PENDING
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Applications fetched successfully",
+  "data": [
+    {
+      "id": "a1f2c3d4-e5f6-7890-abcd-ef1234567890",
+      "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+      "fullName": "Masad Rayan",
+      "phone": "+8801712345678",
+      "avatarUrl": null,
+      "avatarPublicId": null,
+      "departmentId": "11111111-2222-3333-4444-555555555555",
+      "programId": "66666666-7777-8888-9999-000000000000",
+      "enrollmentYear": 2026,
+      "status": "PENDING",
+      "reviewedById": null,
+      "reviewNote": null,
+      "reviewedAt": null,
+      "createdAt": "2026-09-18T10:30:00.000Z",
+      "updatedAt": "2026-09-18T10:30:00.000Z",
+      "user": {
+        "id": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+        "name": "Masad",
+        "email": "masad@example.com",
+        "imageURL": ""
+      },
+      "department": {
+        "id": "11111111-2222-3333-4444-555555555555",
+        "name": "Computer Science",
+        "code": "CSE"
+      },
+      "program": {
+        "id": "66666666-7777-8888-9999-000000000000",
+        "name": "B.Sc in Computer Science",
+        "degreeType": "Bachelor's",
+        "totalCredits": 140,
+        "departmentId": "11111111-2222-3333-4444-555555555555"
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 14. Approve Application (Admin)
+
+Approves a `PENDING` application. Creates the `StudentProfile` (fields taken from the application, `studentId` provided by the admin), marks the application `APPROVED`, creates a `Notification`, and sends the welcome email.
+
+```
+PATCH /api/student/applications/:id/approve
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN`
+
+### Path Parameters
+
+`id` — the `StudentApplication` id (uuid)
+
+### Request Body
+
+| Field        | Type   | Required | Rules |
+|--------------|--------|----------|-------|
+| `studentId`  | string | Yes      | University roll/registration number (must be unique) |
+| `reviewNote` | string | No       | — |
+
+### Demo Input
+
+```json
+{
+  "studentId": "CS-2026-0001",
+  "reviewNote": "Welcome aboard!"
+}
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Application approved and student enrolled successfully",
+  "data": {
+    "id": "c7d8e9f0-1111-2222-3333-444455556666",
+    "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+    "studentId": "CS-2026-0001",
+    "fullName": "Masad Rayan",
+    "phone": "+8801712345678",
+    "avatarUrl": null,
+    "avatarPublicId": null,
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "programId": "66666666-7777-8888-9999-000000000000",
+    "enrollmentYear": 2026,
+    "cgpa": 0,
+    "isDeleted": false,
+    "deletedAt": null,
+    "createdAt": "2026-09-18T12:00:00.000Z",
+    "updatedAt": "2026-09-18T12:00:00.000Z",
+    "department": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "name": "Computer Science",
+      "code": "CSE"
+    },
+    "program": {
+      "id": "66666666-7777-8888-9999-000000000000",
+      "name": "B.Sc in Computer Science",
+      "degreeType": "Bachelor's",
+      "totalCredits": 140,
+      "departmentId": "11111111-2222-3333-4444-555555555555"
+    }
+  }
+}
+```
+
+> Automatic side effects: `Notification` row created + welcome email sent (`student-welcome-email.ejs`).
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Application not found"` |
+| 409 | `"Application already reviewed"` |
+| 409 | `"Student ID already in use"` |
+
+---
+
+## 15. Reject Application (Admin)
+
+Rejects a `PENDING` application with an optional note. Creates a `Notification` and sends the rejection email (`student-application-rejected.ejs`). The student can later edit and resubmit.
+
+```
+PATCH /api/student/applications/:id/reject
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN`
+
+### Path Parameters
+
+`id` — the `StudentApplication` id (uuid)
+
+### Request Body
+
+| Field        | Type   | Required |
+|--------------|--------|----------|
+| `reviewNote` | string | No       |
+
+### Demo Input
+
+```json
+{
+  "reviewNote": "We could not verify your submitted enrollment information. Please update and resubmit."
+}
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Application rejected successfully",
+  "data": {
+    "id": "a1f2c3d4-e5f6-7890-abcd-ef1234567890",
+    "userId": "9b8c7d6e-5f4a-3b2c-1d0e-9a8b7c6d5e4f",
+    "fullName": "Masad Rayan",
+    "phone": "+8801712345678",
+    "avatarUrl": null,
+    "avatarPublicId": null,
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "programId": "66666666-7777-8888-9999-000000000000",
+    "enrollmentYear": 2026,
+    "status": "REJECTED",
+    "reviewedById": "77778888-9999-0000-1111-222233334444",
+    "reviewNote": "We could not verify your submitted enrollment information. Please update and resubmit.",
+    "reviewedAt": "2026-09-18T12:10:00.000Z",
+    "createdAt": "2026-09-18T10:30:00.000Z",
+    "updatedAt": "2026-09-18T12:10:00.000Z"
+  }
+}
+```
+
+> Automatic side effects: `Notification` row created + rejection email sent (`student-application-rejected.ejs`).
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Application not found"` |
+| 409 | `"Application already reviewed"` |
+
+---
+
+## Student Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/student/apply` | STUDENT | Submit enrollment application |
+| 2 | PUT | `/api/student/apply` | STUDENT | Update/resubmit application |
+| 3 | GET | `/api/student/application` | STUDENT | Get my application |
+| 4 | GET | `/api/student/me` | STUDENT | Get full user/profile info |
+| 5 | PATCH | `/api/student/profile` | STUDENT | Update fullName/phone |
+| 6 | PATCH | `/api/student/avatar` | STUDENT | Upload profile image (multipart) |
+| 7 | GET | `/api/student/registered-courses` | STUDENT | List registered courses |
+| 8 | GET | `/api/student/registered-courses/:id` | STUDENT | Registered course details |
+| 9 | GET | `/api/student/attendance` | STUDENT | Attendance summary by course |
+| 10 | GET | `/api/student/grades` | STUDENT | Grades grouped by course |
+| 11 | GET | `/api/student/grades/:id` | STUDENT | Grade details for a registration |
+| 12 | GET | `/api/student/cgpa` | STUDENT | Compute and return CGPA |
+| 13 | GET | `/api/student/applications` | ADMIN, SUPER_ADMIN | List all applications |
+| 14 | PATCH | `/api/student/applications/:id/approve` | ADMIN, SUPER_ADMIN | Approve application |
+| 15 | PATCH | `/api/student/applications/:id/reject` | ADMIN, SUPER_ADMIN | Reject application |
