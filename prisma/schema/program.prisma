@@ -9,6 +9,7 @@ model Program {
 
   students StudentProfile[]
   studentApplications StudentApplication[]
+  studentSections StudentSection[]
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime?

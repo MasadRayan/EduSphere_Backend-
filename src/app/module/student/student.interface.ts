@@ -1,4 +1,7 @@
-import type { ApplicationStatus } from "../../../generated/prisma/enums";
+import type {
+	ApplicationStatus,
+	StudentStatus,
+} from "../../../generated/prisma/enums";
 
 export interface IStudentApplyPayload {
 	phone?: string;
@@ -16,10 +19,19 @@ export interface IApproveApplicationPayload {
 	studentId: string;
 	reviewNote?: string;
 	currentSemesterId?: string;
+	sectionId?: string;
 }
 
 export interface IUpdateCurrentSemesterPayload {
 	currentSemesterId: string | null;
+}
+
+export interface IUpdateStudentSectionPayload {
+	sectionId: string | null;
+}
+
+export interface IUpdateStudentStatusPayload {
+	status: StudentStatus;
 }
 
 export interface IRejectApplicationPayload {

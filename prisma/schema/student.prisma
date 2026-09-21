@@ -20,6 +20,9 @@ model StudentProfile {
   currentSemesterId String?
   currentSemester   Semester? @relation(fields: [currentSemesterId], references: [id], onDelete: SetNull)
 
+  sectionId String?
+  section   StudentSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
   enrollmentYear Int
   cgpa           Float @default(0)
 
@@ -36,5 +39,6 @@ model StudentProfile {
   @@index([departmentId])
   @@index([programId])
   @@index([currentSemesterId])
+  @@index([sectionId])
   @@map("student_profiles")
 }

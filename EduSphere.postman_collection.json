@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "19d90ad1-01d3-41d1-9b0f-0fbfb89a38ef",
     "name": "EduSphere",
-    "description": "EduSphere University Management System — complete API collection.\n\nSet `baseURL` in collection variables. Login/Verify Email/Google Login/Refresh Token automatically save `accessToken` and `refreshToken`. Creating a department/program/course/semester/section and submitting an application automatically saves `departmentId`, `programId`, `courseId`, `semesterId`, `sectionId`, and `applicationId`. Set `instructorId` manually (an InstructorProfile id) before creating a section with an instructor.",
+    "description": "EduSphere University Management System — complete API collection.\n\nSet `baseURL` in collection variables. Login/Verify Email/Google Login/Refresh Token automatically save `accessToken` and `refreshToken`. Creating a department/program/course/semester/section/student-section and submitting an application automatically saves `departmentId`, `programId`, `courseId`, `semesterId`, `sectionId`, `studentSectionId`, and `applicationId`. Set `instructorId` manually (an InstructorProfile id) before creating a section with an instructor.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "49925275",
     "_collection_link": "https://go.postman.co/collection/49925275-19d90ad1-01d3-41d1-9b0f-0fbfb89a38ef?source=collection_link"
@@ -1111,7 +1111,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"studentId\": \"CS-2026-0001\",\n  \"reviewNote\": \"Welcome aboard!\"\n}",
+              "raw": "{\n  \"studentId\": \"CS-2026-0001\",\n  \"currentSemesterId\": \"{{semesterId}}\",\n  \"sectionId\": \"{{studentSectionId}}\",\n  \"reviewNote\": \"Welcome aboard!\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1169,6 +1169,78 @@
               ]
             },
             "description": "Rejects a PENDING application with an optional note, notifies, and sends the rejection email. Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Student Section",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionId\": \"{{studentSectionId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/student/:id/section",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "student",
+                ":id",
+                "section"
+              ]
+            },
+            "description": "Assigns/clears a student's fixed academic section (`:id` = StudentProfile id; `null` clears). Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Student Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/student/:id/status",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "student",
+                ":id",
+                "status"
+              ]
+            },
+            "description": "Sets a student's studentStatus (PENDING/ACTIVE/INACTIVE/GRADUATED/DROPPED_OUT). Roles: ADMIN, SUPER_ADMIN."
           },
           "response": []
         }
@@ -1766,6 +1838,189 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Student Sections",
+      "item": [
+        {
+          "name": "Create Student Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('studentSectionId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sectionCode\": \"A\",\n  \"programId\": \"{{programId}}\",\n  \"enrollmentYear\": 2026,\n  \"capacity\": 40\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/student-sections",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "student-sections"
+              ]
+            },
+            "description": "Creates a student's fixed academic section (program + enrollment year + code). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `studentSectionId`."
+          },
+          "response": []
+        },
+        {
+          "name": "List Student Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/student-sections?programId=&enrollmentYear=&page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "student-sections"
+              ],
+              "query": [
+                {
+                  "key": "programId",
+                  "value": ""
+                },
+                {
+                  "key": "enrollmentYear",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lists student sections with `enrolledCount` and `seatsAvailable`. Roles: any authenticated."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Student Section by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "student-sections",
+                "{{studentSectionId}}"
+              ]
+            },
+            "description": "Fetches a student section by id (includes seat counts). Roles: any authenticated."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Student Section",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 40\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "student-sections",
+                "{{studentSectionId}}"
+              ]
+            },
+            "description": "Updates sectionCode/capacity (program + year immutable; capacity can't drop below enrolled). Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Student Section",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "student-sections",
+                "{{studentSectionId}}"
+              ]
+            },
+            "description": "Hard-deletes a student section; 409 if students are assigned. Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -1811,6 +2066,10 @@
     },
     {
       "key": "instructorId",
+      "value": ""
+    },
+    {
+      "key": "studentSectionId",
       "value": ""
     }
   ]

@@ -1469,7 +1469,10 @@ GET /api/student/applications?status=PENDING
 
 ## 14. Approve Application (Admin)
 
-Approves a `PENDING` application. Creates the `StudentProfile` (fields taken from the application, `studentId` provided by the admin), marks the application `APPROVED`, creates a `Notification`, and sends the welcome email.
+Approves a `PENDING` application. Creates the `StudentProfile` (fields taken from the application, `studentId` provided by the admin) with `studentStatus: ACTIVE`, marks the application `APPROVED`, creates a `Notification`, and sends the welcome email.
+
+- If `currentSemesterId` is **not** provided, it is auto-filled with the currently **active** semester (`isActive: true`).
+- If `sectionId` is provided, the student's **fixed academic section** is set. The section must match the student's program and enrollment year, and must have available seats.
 
 ```
 PATCH /api/student/applications/:id/approve
@@ -1489,7 +1492,8 @@ PATCH /api/student/applications/:id/approve
 |---------------------|--------|----------|-------|
 | `studentId`         | string | Yes      | University roll/registration number (must be unique) |
 | `reviewNote`        | string | No       | — |
-| `currentSemesterId` | string | No       | Must reference an existing semester |
+| `currentSemesterId` | string | No       | Existing semester id; defaults to the active semester when omitted |
+| `sectionId`         | string | No       | Existing `StudentSection` id matching the student's program + year with free seats |
 
 ### Demo Input
 
@@ -1497,7 +1501,8 @@ PATCH /api/student/applications/:id/approve
 {
   "studentId": "CS-2026-0001",
   "reviewNote": "Welcome aboard!",
-  "currentSemesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111"
+  "currentSemesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+  "sectionId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890"
 }
 ```
 
@@ -1518,6 +1523,8 @@ PATCH /api/student/applications/:id/approve
     "avatarPublicId": null,
     "departmentId": "11111111-2222-3333-4444-555555555555",
     "programId": "66666666-7777-8888-9999-000000000000",
+    "studentStatus": "ACTIVE",
+    "sectionId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
     "currentSemesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
     "enrollmentYear": 2026,
     "cgpa": 0,
@@ -1544,6 +1551,13 @@ PATCH /api/student/applications/:id/approve
       "startDate": "2026-09-01T00:00:00.000Z",
       "endDate": "2026-12-31T00:00:00.000Z",
       "isActive": true
+    },
+    "section": {
+      "id": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
+      "sectionCode": "A",
+      "programId": "66666666-7777-8888-9999-000000000000",
+      "enrollmentYear": 2026,
+      "capacity": 40
     }
   }
 }
@@ -1555,9 +1569,11 @@ PATCH /api/student/applications/:id/approve
 
 | Status | Message |
 |--------|---------|
-| 404 | `"Application not found"` / `"Semester not found"` |
+| 400 | `"Student section does not match the student's program and enrollment year"` |
+| 404 | `"Application not found"` / `"Semester not found"` / `"Student section not found"` |
 | 409 | `"Application already reviewed"` |
 | 409 | `"Student ID already in use"` |
+| 409 | `"Student section is at full capacity"` |
 
 ---
 
@@ -1661,13 +1677,99 @@ PATCH /api/student/:id/current-semester
 
 ### Response (200 OK)
 
-Returns the updated `StudentProfile` with `department`, `program`, and `currentSemester`.
+Returns the updated `StudentProfile` with `department`, `program`, `currentSemester`, and `section`.
 
 ### Error Responses
 
 | Status | Message |
 |--------|---------|
 | 404 | `"Student profile not found"` / `"Semester not found"` |
+
+---
+
+## 17. Update Student Section (Admin)
+
+Assigns or clears the student's **fixed academic section**. Send `null` to unassign. The section must match the student's program and enrollment year and must have a free seat (the student's own seat is not counted twice).
+
+```
+PATCH /api/student/:id/section
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN`
+
+### Path Parameters
+
+`id` — the `StudentProfile` id (uuid)
+
+### Request Body
+
+| Field       | Type           | Required | Rules |
+|-------------|----------------|----------|-------|
+| `sectionId` | string \| null | Yes      | Existing `StudentSection` id, or `null` to clear |
+
+### Demo Input
+
+```json
+{
+  "sectionId": "b1a2c3d4-5e6f-7890-abcd-ef1234567890"
+}
+```
+
+### Response (200 OK)
+
+Returns the updated `StudentProfile` with `department`, `program`, `currentSemester`, and `section`.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 400 | `"Student section does not match the student's program and enrollment year"` |
+| 404 | `"Student profile not found"` / `"Student section not found"` |
+| 409 | `"Student section is at full capacity"` |
+
+---
+
+## 18. Update Student Status (Admin)
+
+Changes a student's `studentStatus` (`PENDING`, `ACTIVE`, `INACTIVE`, `GRADUATED`, `DROPPED_OUT`). Useful to activate previously approved students whose profile was created before automatic activation.
+
+```
+PATCH /api/student/:id/status
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN`
+
+### Path Parameters
+
+`id` — the `StudentProfile` id (uuid)
+
+### Request Body
+
+| Field    | Type    | Required | Rules |
+|----------|---------|----------|-------|
+| `status` | string  | Yes      | One of `PENDING`, `ACTIVE`, `INACTIVE`, `GRADUATED`, `DROPPED_OUT` |
+
+### Demo Input
+
+```json
+{
+  "status": "ACTIVE"
+}
+```
+
+### Response (200 OK)
+
+Returns the updated `StudentProfile` with `department`, `program`, `currentSemester`, and `section`.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Student profile not found"` |
 
 ---
 
@@ -1688,9 +1790,11 @@ Returns the updated `StudentProfile` with `department`, `program`, and `currentS
 | 11 | GET | `/api/student/grades/:id` | STUDENT | Grade details for a registration |
 | 12 | GET | `/api/student/cgpa` | STUDENT | Compute and return CGPA |
 | 13 | GET | `/api/student/applications` | ADMIN, SUPER_ADMIN | List all applications |
-| 14 | PATCH | `/api/student/applications/:id/approve` | ADMIN, SUPER_ADMIN | Approve application |
+| 14 | PATCH | `/api/student/applications/:id/approve` | ADMIN, SUPER_ADMIN | Approve application (status ACTIVE, auto semester, optional section) |
 | 15 | PATCH | `/api/student/applications/:id/reject` | ADMIN, SUPER_ADMIN | Reject application |
 | 16 | PATCH | `/api/student/:id/current-semester` | ADMIN, SUPER_ADMIN | Set/clear a student's current semester |
+| 17 | PATCH | `/api/student/:id/section` | ADMIN, SUPER_ADMIN | Assign/clear a student's fixed section |
+| 18 | PATCH | `/api/student/:id/status` | ADMIN, SUPER_ADMIN | Update student status (e.g. ACTIVE) |
 
 ---
 
@@ -2577,3 +2681,167 @@ Permanently deletes the section; `ON DELETE CASCADE` removes its registrations, 
 | 4 | PATCH | `/api/sections/:id` | ADMIN, SUPER_ADMIN | Update a section |
 | 5 | PATCH | `/api/sections/:id/assign-instructor` | ADMIN, SUPER_ADMIN | Assign an instructor |
 | 6 | DELETE | `/api/sections/:id` | ADMIN, SUPER_ADMIN | Hard-delete a section (cascades) |
+
+---
+
+# EduSphere — Student Section Module API Documentation
+
+A `StudentSection` is the student's **fixed academic section** (batch) for their entire university life. It is keyed by `(programId, enrollmentYear, sectionCode)` — e.g. "B.Sc in Computer Science · 2026 · Section A" — and has a `capacity` (seats).
+
+Unlike a course `Section` (a single course offering in a semester), a `StudentSection` is permanent: a student admitted to Section A stays in Section A until they leave. Seat availability is **computed on the fly**:
+
+```
+enrolledCount = count of non-deleted StudentProfiles in the section
+seatsAvailable = capacity - enrolledCount
+```
+
+Enrolling a student (assigning `sectionId` on approval or via admin) reduces available seats; hard-deleting a student profile frees one automatically. Reads are open to any authenticated role; writes require `ADMIN` or `SUPER_ADMIN`.
+
+## 1. Create Student Section
+
+```
+POST /api/student-sections
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+| Field            | Type   | Required | Rules |
+|------------------|--------|----------|-------|
+| `sectionCode`    | string | Yes      | 1–10 characters, unique per program + year |
+| `programId`      | string | Yes      | Existing program |
+| `enrollmentYear` | number | Yes      | 2000 – current year + 1 |
+| `capacity`       | number | Yes      | Positive integer |
+
+### Demo Input
+
+```json
+{
+  "sectionCode": "A",
+  "programId": "66666666-7777-8888-9999-000000000000",
+  "enrollmentYear": 2026,
+  "capacity": 40
+}
+```
+
+### Response (201 Created)
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Student section created successfully",
+  "data": {
+    "id": "b1a2c3d4-5e6f-7890-abcd-ef1234567890",
+    "sectionCode": "A",
+    "programId": "66666666-7777-8888-9999-000000000000",
+    "enrollmentYear": 2026,
+    "capacity": 40,
+    "enrolledCount": 0,
+    "seatsAvailable": 40,
+    "program": { "id": "66666666-7777-8888-9999-000000000000", "name": "B.Sc in Computer Science" }
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Program not found"` |
+| 409 | `"Section with this code already exists for this program and year"` |
+
+## 2. List Student Sections
+
+```
+GET /api/student-sections?programId=&enrollmentYear=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`, `STUDENT`
+
+### Query Parameters
+
+| Field            | Type   | Required | Notes |
+|------------------|--------|----------|-------|
+| `programId`      | string | No       | Filter by program |
+| `enrollmentYear` | number | No       | Filter by year |
+| `page`           | number | No       | Default `1` |
+| `limit`          | number | No       | Default `10`, max `100` |
+
+### Response (200 OK)
+
+Paginated `data` plus `meta`. Each item includes `program`, `enrolledCount`, and `seatsAvailable`.
+
+## 3. Get Student Section by ID
+
+```
+GET /api/student-sections/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`, `STUDENT`
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Student section not found"` |
+
+## 4. Update Student Section
+
+```
+PATCH /api/student-sections/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+Any of `sectionCode`, `capacity` (all optional). `programId` and `enrollmentYear` are immutable. Capacity cannot be lowered below `enrolledCount`.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Student section not found"` |
+| 409 | `"Section with this code already exists for this program and year"` |
+| 409 | `"Capacity cannot be lower than the current number of enrolled students"` |
+
+## 5. Delete Student Section (hard)
+
+```
+DELETE /api/student-sections/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+Permanently deletes the section. Blocked while any student is assigned (their `sectionId` would become `NULL` on delete).
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Student section not found"` |
+| 409 | `"Student section has enrolled students; reassign them first"` |
+
+## Student Section Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/student-sections` | ADMIN, SUPER_ADMIN | Create a student section (program + year + code) |
+| 2 | GET | `/api/student-sections` | all roles | List student sections (with seat counts) |
+| 3 | GET | `/api/student-sections/:id` | all roles | Get a student section |
+| 4 | PATCH | `/api/student-sections/:id` | ADMIN, SUPER_ADMIN | Update code/capacity |
+| 5 | DELETE | `/api/student-sections/:id` | ADMIN, SUPER_ADMIN | Hard-delete (blocked if students assigned) |

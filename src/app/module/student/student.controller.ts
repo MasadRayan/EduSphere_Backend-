@@ -137,6 +137,30 @@ const updateCurrentSemester = catchAsync(
 	},
 );
 
+const updateStudentSection = catchAsync(async (req: Request, res: Response) => {
+	const id = req.params.id as string;
+	const result = await StudentService.updateStudentSection(id, req.body);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Student section updated successfully",
+		data: result,
+	});
+});
+
+const updateStudentStatus = catchAsync(async (req: Request, res: Response) => {
+	const id = req.params.id as string;
+	const result = await StudentService.updateStudentStatus(id, req.body);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Student status updated successfully",
+		data: result,
+	});
+});
+
 const getMyInfo = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as unknown as IRequestUser;
 	const result = await StudentService.getMyInfo(user.userId);
@@ -238,6 +262,8 @@ export const StudentController = {
 	updateMyProfile,
 	updateMyProfileImage,
 	updateCurrentSemester,
+	updateStudentSection,
+	updateStudentStatus,
 	getMyInfo,
 	registeredCourses,
 	registeredCourseDetails,

@@ -1,0 +1,20 @@
+model StudentSection {
+  id             String @id @default(uuid())
+  sectionCode    String // e.g. "A", "B"
+  programId      String
+  program        Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  enrollmentYear Int
+  capacity       Int
+
+  students StudentProfile[]
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([programId, enrollmentYear, sectionCode])
+  @@index([programId])
+  @@map("student_sections")
+}

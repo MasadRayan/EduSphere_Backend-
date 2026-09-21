@@ -45,4 +45,6 @@ export default {
 	seed_course_credit_hours: process.env.SEED_COURSE_CREDIT_HOURS ?? "3",
 	seed_section_code: process.env.SEED_SECTION_CODE ?? "A",
 	seed_section_capacity: process.env.SEED_SECTION_CAPACITY ?? "40",
+	seed_student_section_code:
+		process.env.SEED_STUDENT_SECTION_CODE ?? "A",
 };

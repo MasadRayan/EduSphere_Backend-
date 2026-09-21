@@ -16,6 +16,7 @@ import { ProgramRoutes } from "./app/module/program/program.route";
 import { SectionRoutes } from "./app/module/section/section.route";
 import { SemesterRoutes } from "./app/module/semester/semester.route";
 import { StudentRoutes } from "./app/module/student/student.route";
+import { StudentSectionRoutes } from "./app/module/studentSection/studentSection.route";
 
 const app: Application = express();
 
@@ -39,6 +40,7 @@ app.use("/api/programs", ProgramRoutes);
 app.use("/api/courses", CourseRoutes);
 app.use("/api/semesters", SemesterRoutes);
 app.use("/api/sections", SectionRoutes);
+app.use("/api/student-sections", StudentSectionRoutes);
 app.use("/api/student", StudentRoutes);
 
 // Basic route

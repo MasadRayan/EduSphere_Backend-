@@ -90,5 +90,17 @@ router.patch(
 	validateRequest(StudentValidation.UpdateCurrentSemesterZodSchema),
 	StudentController.updateCurrentSemester,
 );
+router.patch(
+	"/:id/section",
+	auth(Role.ADMIN, Role.SUPER_ADMIN),
+	validateRequest(StudentValidation.UpdateStudentSectionZodSchema),
+	StudentController.updateStudentSection,
+);
+router.patch(
+	"/:id/status",
+	auth(Role.ADMIN, Role.SUPER_ADMIN),
+	validateRequest(StudentValidation.UpdateStudentStatusZodSchema),
+	StudentController.updateStudentStatus,
+);
 
 export const StudentRoutes = router;

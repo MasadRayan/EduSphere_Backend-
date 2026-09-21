@@ -247,7 +247,32 @@ export const seedAcademicData = async () => {
 			},
 		});
 
-		console.log("Academic seed data ensured (semester, course, section).");
+		const program = await prisma.program.findFirst({
+			where: { departmentId: department.id, isDeleted: false },
+		});
+
+		if (program) {
+			await prisma.studentSection.upsert({
+				where: {
+					programId_enrollmentYear_sectionCode: {
+						programId: program.id,
+						enrollmentYear: year,
+						sectionCode: config.seed_student_section_code,
+					},
+				},
+				update: {},
+				create: {
+					programId: program.id,
+					enrollmentYear: year,
+					sectionCode: config.seed_student_section_code,
+					capacity: Number(config.seed_section_capacity) || 40,
+				},
+			});
+		}
+
+		console.log(
+			"Academic seed data ensured (semester, course, section, student section).",
+		);
 	} catch (error) {
 		console.log("Error Seeding Academic Data : ", error);
 	}

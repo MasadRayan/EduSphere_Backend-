@@ -1,4 +1,5 @@
 import z from "zod";
+import { StudentStatus } from "../../../generated/prisma/enums";
 
 const StudentApplyZodSchema = z.object({
 	phone: z.string().optional(),
@@ -20,6 +21,7 @@ const ApproveApplicationZodSchema = z.object({
 	studentId: z.string().min(1, "Student ID is required"),
 	reviewNote: z.string().optional(),
 	currentSemesterId: z.string().min(1).optional(),
+	sectionId: z.string().min(1).optional(),
 });
 
 const UpdateCurrentSemesterZodSchema = z.object({
@@ -27,6 +29,14 @@ const UpdateCurrentSemesterZodSchema = z.object({
 		.string()
 		.min(1, "Semester id cannot be empty")
 		.nullable(),
+});
+
+const UpdateStudentSectionZodSchema = z.object({
+	sectionId: z.string().min(1, "Section id cannot be empty").nullable(),
+});
+
+const UpdateStudentStatusZodSchema = z.object({
+	status: z.nativeEnum(StudentStatus),
 });
 
 const RejectApplicationZodSchema = z.object({
@@ -39,4 +49,6 @@ export const StudentValidation = {
 	ApproveApplicationZodSchema,
 	RejectApplicationZodSchema,
 	UpdateCurrentSemesterZodSchema,
+	UpdateStudentSectionZodSchema,
+	UpdateStudentStatusZodSchema,
 };

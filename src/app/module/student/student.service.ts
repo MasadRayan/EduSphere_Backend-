@@ -8,6 +8,7 @@ import {
 	AttendanceStatus,
 	NotificationChannel,
 	RegistrationStatus,
+	StudentStatus,
 } from "../../../generated/prisma/enums";
 import config from "../../config";
 import { cloudinary } from "../../lib/cloudinary";
@@ -22,6 +23,8 @@ import type {
 	IStudentApplyPayload,
 	IUpdateCurrentSemesterPayload,
 	IUpdateMyProfilePayload,
+	IUpdateStudentSectionPayload,
+	IUpdateStudentStatusPayload,
 } from "./student.interface";
 
 type AttendanceGroup = {
@@ -322,6 +325,49 @@ const approveApplication = async (
 		}
 	}
 
+	const sectionId = payload.sectionId;
+
+	if (sectionId) {
+		const section = await prisma.studentSection.findFirst({
+			where: { id: sectionId, isDeleted: false },
+		});
+
+		if (!section) {
+			throw new AppError(httpStatus.NOT_FOUND, "Student section not found");
+		}
+
+		if (
+			section.programId !== application.programId ||
+			section.enrollmentYear !== application.enrollmentYear
+		) {
+			throw new AppError(
+				httpStatus.BAD_REQUEST,
+				"Student section does not match the student's program and enrollment year",
+			);
+		}
+
+		const enrolledCount = await prisma.studentProfile.count({
+			where: { sectionId: section.id, isDeleted: false },
+		});
+
+		if (enrolledCount >= section.capacity) {
+			throw new AppError(
+				httpStatus.CONFLICT,
+				"Student section is at full capacity",
+			);
+		}
+	}
+
+	let currentSemesterId: string | null | undefined = payload.currentSemesterId;
+
+	if (!currentSemesterId) {
+		const activeSemester = await prisma.semester.findFirst({
+			where: { isActive: true },
+		});
+
+		currentSemesterId = activeSemester?.id ?? null;
+	}
+
 	const studentProfile = await prisma.studentProfile.create({
 		data: {
 			userId: application.userId,
@@ -332,13 +378,16 @@ const approveApplication = async (
 			avatarPublicId: application.avatarPublicId,
 			departmentId: application.departmentId,
 			programId: application.programId,
-			currentSemesterId: payload.currentSemesterId,
+			currentSemesterId,
+			sectionId,
+			studentStatus: StudentStatus.ACTIVE,
 			enrollmentYear: application.enrollmentYear,
 		},
 		include: {
 			department: true,
 			program: true,
 			currentSemester: true,
+			section: true,
 		},
 	});
 
@@ -567,6 +616,7 @@ const getMyInfo = async (userId: string) => {
 					department: true,
 					program: true,
 					currentSemester: true,
+					section: true,
 				},
 			},
 			studentApplication: {
@@ -619,6 +669,94 @@ const updateCurrentSemester = async (
 			department: true,
 			program: true,
 			currentSemester: true,
+			section: true,
+		},
+	});
+};
+
+const updateStudentSection = async (
+	studentProfileId: string,
+	payload: IUpdateStudentSectionPayload,
+) => {
+	const profile = await prisma.studentProfile.findFirst({
+		where: { id: studentProfileId, isDeleted: false },
+	});
+
+	if (!profile) {
+		throw new AppError(httpStatus.NOT_FOUND, "Student profile not found");
+	}
+
+	if (payload.sectionId) {
+		const section = await prisma.studentSection.findFirst({
+			where: { id: payload.sectionId, isDeleted: false },
+		});
+
+		if (!section) {
+			throw new AppError(httpStatus.NOT_FOUND, "Student section not found");
+		}
+
+		if (
+			section.programId !== profile.programId ||
+			section.enrollmentYear !== profile.enrollmentYear
+		) {
+			throw new AppError(
+				httpStatus.BAD_REQUEST,
+				"Student section does not match the student's program and enrollment year",
+			);
+		}
+
+		const enrolledCount = await prisma.studentProfile.count({
+			where: {
+				sectionId: section.id,
+				isDeleted: false,
+				id: { not: profile.id },
+			},
+		});
+
+		if (enrolledCount >= section.capacity) {
+			throw new AppError(
+				httpStatus.CONFLICT,
+				"Student section is at full capacity",
+			);
+		}
+	}
+
+	return prisma.studentProfile.update({
+		where: { id: studentProfileId },
+		data: {
+			sectionId: payload.sectionId,
+		},
+		include: {
+			department: true,
+			program: true,
+			currentSemester: true,
+			section: true,
+		},
+	});
+};
+
+const updateStudentStatus = async (
+	studentProfileId: string,
+	payload: IUpdateStudentStatusPayload,
+) => {
+	const profile = await prisma.studentProfile.findFirst({
+		where: { id: studentProfileId, isDeleted: false },
+	});
+
+	if (!profile) {
+		throw new AppError(httpStatus.NOT_FOUND, "Student profile not found");
+	}
+
+	return prisma.studentProfile.update({
+		where: { id: studentProfileId },
+		data: {
+			studentStatus: payload.status,
+		},
+		include: {
+			department: true,
+			program: true,
+			currentSemester: true,
+			section: true,
 		},
 	});
 };
@@ -1039,6 +1177,8 @@ export const StudentService = {
 	updateMyProfile,
 	updateMyProfileImage,
 	updateCurrentSemester,
+	updateStudentSection,
+	updateStudentStatus,
 	getMyInfo,
 	registeredCourses,
 	registeredCourseDetails,
