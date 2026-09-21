@@ -15,6 +15,7 @@ import { cloudinary } from "../../lib/cloudinary";
 import { transporter } from "../../lib/nodemailer";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { isSupportedImageBuffer } from "../../utils/imageSignature";
 import type { IRequestUser } from "../auth/auth.interface";
 import type {
 	IApproveApplicationPayload,
@@ -532,6 +533,10 @@ const updateMyProfileImage = async (buffer: Buffer, userId: string) => {
 			httpStatus.FORBIDDEN,
 			"Apply for enrollment before uploading a profile image",
 		);
+	}
+
+	if (!isSupportedImageBuffer(buffer)) {
+		throw new AppError(httpStatus.BAD_REQUEST, "Only image files are allowed");
 	}
 
 	const cloudinaryResult = await new Promise<UploadApiResponse>(
