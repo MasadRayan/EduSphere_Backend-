@@ -1,4 +1,4 @@
-model Section {
+model CourseSection {
   id          String @id @default(uuid())
   sectionCode String // e.g. "A", "B"
 
@@ -27,5 +27,5 @@ model Section {
   @@unique([courseId, semesterId, sectionCode])
   @@index([semesterId])
   @@index([instructorId])
-  @@map("sections")
+  @@map("course_sections")
 }

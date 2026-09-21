@@ -2,61 +2,61 @@ import type { Request, Response } from "express";
 import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
-import type { ISectionQuery } from "./section.interface";
-import { SectionService } from "./section.service";
+import type { ICourseSectionQuery } from "./courseSection.interface";
+import { CourseSectionService } from "./courseSection.service";
 
-const createSection = catchAsync(async (req: Request, res: Response) => {
-	const result = await SectionService.createSection(req.body);
+const createCourseSection = catchAsync(async (req: Request, res: Response) => {
+	const result = await CourseSectionService.createCourseSection(req.body);
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
-		message: "Section created successfully",
+		message: "Course section created successfully",
 		data: result,
 	});
 });
 
-const getAllSections = catchAsync(async (req: Request, res: Response) => {
-	const result = await SectionService.getAllSections(
-		req.query as unknown as ISectionQuery,
+const getAllCourseSections = catchAsync(async (req: Request, res: Response) => {
+	const result = await CourseSectionService.getAllCourseSections(
+		req.query as unknown as ICourseSectionQuery,
 	);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Sections fetched successfully",
+		message: "Course sections fetched successfully",
 		data: result.data,
 		meta: result.meta,
 	});
 });
 
-const getSectionById = catchAsync(async (req: Request, res: Response) => {
+const getCourseSectionById = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
-	const result = await SectionService.getSectionById(id);
+	const result = await CourseSectionService.getCourseSectionById(id);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Section fetched successfully",
+		message: "Course section fetched successfully",
 		data: result,
 	});
 });
 
-const updateSection = catchAsync(async (req: Request, res: Response) => {
+const updateCourseSection = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
-	const result = await SectionService.updateSection(id, req.body);
+	const result = await CourseSectionService.updateCourseSection(id, req.body);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Section updated successfully",
+		message: "Course section updated successfully",
 		data: result,
 	});
 });
 
 const assignInstructor = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
-	const result = await SectionService.assignInstructor(id, req.body);
+	const result = await CourseSectionService.assignInstructor(id, req.body);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
@@ -66,23 +66,23 @@ const assignInstructor = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const deleteSection = catchAsync(async (req: Request, res: Response) => {
+const deleteCourseSection = catchAsync(async (req: Request, res: Response) => {
 	const id = req.params.id as string;
-	const result = await SectionService.deleteSection(id);
+	const result = await CourseSectionService.deleteCourseSection(id);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Section deleted successfully",
+		message: "Course section deleted successfully",
 		data: result,
 	});
 });
 
-export const SectionController = {
-	createSection,
-	getAllSections,
-	getSectionById,
-	updateSection,
+export const CourseSectionController = {
+	createCourseSection,
+	getAllCourseSections,
+	getCourseSectionById,
+	updateCourseSection,
 	assignInstructor,
-	deleteSection,
+	deleteCourseSection,
 };

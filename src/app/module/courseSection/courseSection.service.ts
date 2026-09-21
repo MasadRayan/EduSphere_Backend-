@@ -4,12 +4,12 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import type {
 	IAssignInstructorPayload,
-	ICreateSectionPayload,
-	ISectionQuery,
-	IUpdateSectionPayload,
-} from "./section.interface";
+	ICourseSectionQuery,
+	ICreateCourseSectionPayload,
+	IUpdateCourseSectionPayload,
+} from "./courseSection.interface";
 
-const sectionInclude = {
+const courseSectionInclude = {
 	course: true,
 	semester: true,
 	instructor: {
@@ -22,7 +22,7 @@ const sectionInclude = {
 			},
 		},
 	},
-} satisfies Prisma.SectionInclude;
+} satisfies Prisma.CourseSectionInclude;
 
 const ensureCourseExists = async (courseId: string) => {
 	const course = await prisma.course.findFirst({
@@ -60,13 +60,13 @@ const ensureInstructorExists = async (instructorId: string) => {
 	return instructor;
 };
 
-const ensureUniqueSection = async (
+const ensureUniqueCourseSection = async (
 	sectionCode: string,
 	courseId: string,
 	semesterId: string,
 	ignoreId?: string,
 ) => {
-	const existingSection = await prisma.section.findFirst({
+	const existingCourseSection = await prisma.courseSection.findFirst({
 		where: {
 			sectionCode,
 			courseId,
@@ -75,15 +75,15 @@ const ensureUniqueSection = async (
 		},
 	});
 
-	if (existingSection) {
+	if (existingCourseSection) {
 		throw new AppError(
 			httpStatus.CONFLICT,
-			"Section with this code already exists for this course and semester",
+			"Course section with this code already exists for this course and semester",
 		);
 	}
 };
 
-const createSection = async (payload: ICreateSectionPayload) => {
+const createCourseSection = async (payload: ICreateCourseSectionPayload) => {
 	await ensureCourseExists(payload.courseId);
 	await ensureSemesterExists(payload.semesterId);
 
@@ -91,13 +91,13 @@ const createSection = async (payload: ICreateSectionPayload) => {
 		await ensureInstructorExists(payload.instructorId);
 	}
 
-	await ensureUniqueSection(
+	await ensureUniqueCourseSection(
 		payload.sectionCode,
 		payload.courseId,
 		payload.semesterId,
 	);
 
-	return prisma.section.create({
+	return prisma.courseSection.create({
 		data: {
 			courseId: payload.courseId,
 			semesterId: payload.semesterId,
@@ -106,16 +106,16 @@ const createSection = async (payload: ICreateSectionPayload) => {
 			capacity: payload.capacity,
 			schedule: payload.schedule,
 		},
-		include: sectionInclude,
+		include: courseSectionInclude,
 	});
 };
 
-const getAllSections = async (query: ISectionQuery) => {
+const getAllCourseSections = async (query: ICourseSectionQuery) => {
 	const page = Math.max(1, Number(query.page) || 1);
 	const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
 	const skip = (page - 1) * limit;
 
-	const where: Prisma.SectionWhereInput = { isDeleted: false };
+	const where: Prisma.CourseSectionWhereInput = { isDeleted: false };
 
 	if (query.courseId) {
 		where.courseId = query.courseId;
@@ -130,14 +130,14 @@ const getAllSections = async (query: ISectionQuery) => {
 	}
 
 	const [data, total] = await prisma.$transaction([
-		prisma.section.findMany({
+		prisma.courseSection.findMany({
 			where,
 			skip,
 			take: limit,
 			orderBy: { createdAt: "desc" },
-			include: sectionInclude,
+			include: courseSectionInclude,
 		}),
-		prisma.section.count({ where }),
+		prisma.courseSection.count({ where }),
 	]);
 
 	return {
@@ -151,28 +151,31 @@ const getAllSections = async (query: ISectionQuery) => {
 	};
 };
 
-const getSectionById = async (id: string) => {
-	const section = await prisma.section.findFirst({
+const getCourseSectionById = async (id: string) => {
+	const courseSection = await prisma.courseSection.findFirst({
 		where: { id, isDeleted: false },
-		include: sectionInclude,
+		include: courseSectionInclude,
 	});
 
-	if (!section) {
-		throw new AppError(httpStatus.NOT_FOUND, "Section not found");
+	if (!courseSection) {
+		throw new AppError(httpStatus.NOT_FOUND, "Course section not found");
 	}
 
-	return section;
+	return courseSection;
 };
 
-const updateSection = async (id: string, payload: IUpdateSectionPayload) => {
-	const existing = await getSectionById(id);
+const updateCourseSection = async (
+	id: string,
+	payload: IUpdateCourseSectionPayload,
+) => {
+	const existing = await getCourseSectionById(id);
 
 	if (payload.instructorId) {
 		await ensureInstructorExists(payload.instructorId);
 	}
 
 	if (payload.sectionCode && payload.sectionCode !== existing.sectionCode) {
-		await ensureUniqueSection(
+		await ensureUniqueCourseSection(
 			payload.sectionCode,
 			existing.courseId,
 			existing.semesterId,
@@ -180,7 +183,7 @@ const updateSection = async (id: string, payload: IUpdateSectionPayload) => {
 		);
 	}
 
-	return prisma.section.update({
+	return prisma.courseSection.update({
 		where: { id },
 		data: {
 			sectionCode: payload.sectionCode,
@@ -188,7 +191,7 @@ const updateSection = async (id: string, payload: IUpdateSectionPayload) => {
 			capacity: payload.capacity,
 			schedule: payload.schedule,
 		},
-		include: sectionInclude,
+		include: courseSectionInclude,
 	});
 };
 
@@ -196,31 +199,33 @@ const assignInstructor = async (
 	id: string,
 	payload: IAssignInstructorPayload,
 ) => {
-	await getSectionById(id);
+	await getCourseSectionById(id);
 	await ensureInstructorExists(payload.instructorId);
 
-	return prisma.section.update({
+	return prisma.courseSection.update({
 		where: { id },
 		data: { instructorId: payload.instructorId },
-		include: sectionInclude,
+		include: courseSectionInclude,
 	});
 };
 
-const deleteSection = async (id: string) => {
-	const section = await prisma.section.findUnique({ where: { id } });
+const deleteCourseSection = async (id: string) => {
+	const courseSection = await prisma.courseSection.findUnique({
+		where: { id },
+	});
 
-	if (!section) {
-		throw new AppError(httpStatus.NOT_FOUND, "Section not found");
+	if (!courseSection) {
+		throw new AppError(httpStatus.NOT_FOUND, "Course section not found");
 	}
 
-	return prisma.section.delete({ where: { id } });
+	return prisma.courseSection.delete({ where: { id } });
 };
 
-export const SectionService = {
-	createSection,
-	getAllSections,
-	getSectionById,
-	updateSection,
+export const CourseSectionService = {
+	createCourseSection,
+	getAllCourseSections,
+	getCourseSectionById,
+	updateCourseSection,
 	assignInstructor,
-	deleteSection,
+	deleteCourseSection,
 };

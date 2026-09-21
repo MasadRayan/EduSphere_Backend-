@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "19d90ad1-01d3-41d1-9b0f-0fbfb89a38ef",
     "name": "EduSphere",
-    "description": "EduSphere University Management System — complete API collection.\n\nSet `baseURL` in collection variables. Login/Verify Email/Google Login/Refresh Token automatically save `accessToken` and `refreshToken`. Creating a department/program/course/semester/section/student-section and submitting an application automatically saves `departmentId`, `programId`, `courseId`, `semesterId`, `sectionId`, `studentSectionId`, and `applicationId`. Set `instructorId` manually (an InstructorProfile id) before creating a section with an instructor.",
+    "description": "EduSphere University Management System — complete API collection.\n\nSet `baseURL` in collection variables. Login/Verify Email/Google Login/Refresh Token automatically save `accessToken` and `refreshToken`. Creating a department/program/course/semester/course-section/student-section and submitting an application automatically saves `departmentId`, `programId`, `courseId`, `semesterId`, `sectionId`, `studentSectionId`, and `applicationId`. Set `instructorId` manually (an InstructorProfile id) before creating a course section with an instructor.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "49925275",
     "_collection_link": "https://go.postman.co/collection/49925275-19d90ad1-01d3-41d1-9b0f-0fbfb89a38ef?source=collection_link"
@@ -1423,7 +1423,7 @@
                 "{{courseId}}"
               ]
             },
-            "description": "Hard-deletes a course (cascades sections + prerequisites). Roles: ADMIN, SUPER_ADMIN."
+            "description": "Hard-deletes a course (cascades course sections + prerequisites). Roles: ADMIN, SUPER_ADMIN."
           },
           "response": []
         }
@@ -1610,17 +1610,17 @@
                 "{{semesterId}}"
               ]
             },
-            "description": "Deletes a semester; blocked (409) if sections exist. Roles: ADMIN, SUPER_ADMIN."
+            "description": "Deletes a semester; blocked (409) if course sections exist. Roles: ADMIN, SUPER_ADMIN."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Sections",
+      "name": "Course Sections",
       "item": [
         {
-          "name": "Create Section",
+          "name": "Create Course Section",
           "event": [
             {
               "listen": "test",
@@ -1654,21 +1654,21 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/sections",
+              "raw": "{{baseURL}}/api/course-sections",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
-                "sections"
+                "course-sections"
               ]
             },
-            "description": "Creates a section for a course + semester (optional instructor). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `sectionId`."
+            "description": "Creates a course section for a course + semester (optional instructor). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `sectionId`."
           },
           "response": []
         },
         {
-          "name": "List Sections",
+          "name": "List Course Sections",
           "request": {
             "method": "GET",
             "header": [
@@ -1679,13 +1679,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/sections?courseId=&semesterId=&instructorId=&page=1&limit=10",
+              "raw": "{{baseURL}}/api/course-sections?courseId=&semesterId=&instructorId=&page=1&limit=10",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
-                "sections"
+                "course-sections"
               ],
               "query": [
                 {
@@ -1710,12 +1710,12 @@
                 }
               ]
             },
-            "description": "Lists sections with course, semester, and instructor. Roles: any authenticated."
+            "description": "Lists course sections with course, semester, and instructor. Roles: any authenticated."
           },
           "response": []
         },
         {
-          "name": "Get Section by ID",
+          "name": "Get Course Section by ID",
           "request": {
             "method": "GET",
             "header": [
@@ -1726,22 +1726,22 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/sections/{{sectionId}}",
+              "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
-                "sections",
+                "course-sections",
                 "{{sectionId}}"
               ]
             },
-            "description": "Fetches a section by id. Roles: any authenticated."
+            "description": "Fetches a course section by id. Roles: any authenticated."
           },
           "response": []
         },
         {
-          "name": "Update Section",
+          "name": "Update Course Section",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1761,13 +1761,13 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/sections/{{sectionId}}",
+              "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
-                "sections",
+                "course-sections",
                 "{{sectionId}}"
               ]
             },
@@ -1796,23 +1796,23 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/sections/{{sectionId}}/assign-instructor",
+              "raw": "{{baseURL}}/api/course-sections/{{sectionId}}/assign-instructor",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
-                "sections",
+                "course-sections",
                 "{{sectionId}}",
                 "assign-instructor"
               ]
             },
-            "description": "Assigns an instructor to a section. Roles: ADMIN, SUPER_ADMIN."
+            "description": "Assigns an instructor to a course section. Roles: ADMIN, SUPER_ADMIN."
           },
           "response": []
         },
         {
-          "name": "Delete Section",
+          "name": "Delete Course Section",
           "request": {
             "method": "DELETE",
             "header": [
@@ -1823,17 +1823,17 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/sections/{{sectionId}}",
+              "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
-                "sections",
+                "course-sections",
                 "{{sectionId}}"
               ]
             },
-            "description": "Hard-deletes a section (cascades registrations/attendance/exams/results). Roles: ADMIN, SUPER_ADMIN."
+            "description": "Hard-deletes a course section (cascades registrations/attendance/exams/results). Roles: ADMIN, SUPER_ADMIN."
           },
           "response": []
         }

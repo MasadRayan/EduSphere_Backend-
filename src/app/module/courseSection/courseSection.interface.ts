@@ -1,6 +1,6 @@
 import type { IQuery } from "../../interfaces";
 
-export interface ICreateSectionPayload {
+export interface ICreateCourseSectionPayload {
 	courseId: string;
 	semesterId: string;
 	sectionCode: string;
@@ -9,7 +9,7 @@ export interface ICreateSectionPayload {
 	schedule?: string;
 }
 
-export interface IUpdateSectionPayload {
+export interface IUpdateCourseSectionPayload {
 	sectionCode?: string;
 	instructorId?: string | null;
 	capacity?: number;
@@ -20,7 +20,7 @@ export interface IAssignInstructorPayload {
 	instructorId: string;
 }
 
-export interface ISectionQuery extends IQuery {
+export interface ICourseSectionQuery extends IQuery {
 	courseId?: string;
 	semesterId?: string;
 	instructorId?: string;

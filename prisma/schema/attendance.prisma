@@ -4,8 +4,8 @@ model Attendance {
   studentId String
   student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  sectionId String
-  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  courseSectionId String
+  courseSection   CourseSection @relation(fields: [courseSectionId], references: [id], onDelete: Cascade)
 
   date   DateTime
   status AttendanceStatus
@@ -13,7 +13,7 @@ model Attendance {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([studentId, sectionId, date])
-  @@index([sectionId, date])
+  @@unique([studentId, courseSectionId, date])
+  @@index([courseSectionId, date])
   @@map("attendances")
 }

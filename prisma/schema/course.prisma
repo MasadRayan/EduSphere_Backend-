@@ -7,7 +7,7 @@ model Course {
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
-  sections Section[]
+  courseSections CourseSection[]
 
   // Self-referencing many-to-many (a course can require other courses)
   prerequisites CoursePrerequisite[] @relation("CourseToPrereq")

@@ -12,8 +12,8 @@ import {
 } from "../../../generated/prisma/enums";
 import config from "../../config";
 import { cloudinary } from "../../lib/cloudinary";
-import { prisma } from "../../lib/prisma";
 import { transporter } from "../../lib/nodemailer";
+import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import type { IRequestUser } from "../auth/auth.interface";
 import type {
@@ -28,7 +28,7 @@ import type {
 } from "./student.interface";
 
 type AttendanceGroup = {
-	sectionId: string;
+	courseSectionId: string;
 	sectionCode: string;
 	course: {
 		code: string;
@@ -773,7 +773,7 @@ const registeredCourses = async (userId: string) => {
 			},
 		},
 		include: {
-			section: {
+			courseSection: {
 				include: {
 					course: true,
 					semester: true,
@@ -811,7 +811,7 @@ const registeredCourseDetails = async (
 			isDeleted: false,
 		},
 		include: {
-			section: {
+			courseSection: {
 				include: {
 					course: true,
 					semester: true,
@@ -859,10 +859,10 @@ const attendanceDetails = async (userId: string) => {
 	const attendances = await prisma.attendance.findMany({
 		where: {
 			studentId: studentProfileId,
-			section: { isDeleted: false },
+			courseSection: { isDeleted: false },
 		},
 		include: {
-			section: {
+			courseSection: {
 				include: {
 					course: true,
 					semester: true,
@@ -877,19 +877,19 @@ const attendanceDetails = async (userId: string) => {
 	const grouped = new Map<string, AttendanceGroup>();
 
 	for (const attendance of attendances) {
-		const section = attendance.section;
-		const key = section.id;
+		const courseSection = attendance.courseSection;
+		const key = courseSection.id;
 
 		if (!grouped.has(key)) {
 			grouped.set(key, {
-				sectionId: section.id,
-				sectionCode: section.sectionCode,
+				courseSectionId: courseSection.id,
+				sectionCode: courseSection.sectionCode,
 				course: {
-					code: section.course.code,
-					title: section.course.title,
-					creditHours: section.course.creditHours,
+					code: courseSection.course.code,
+					title: courseSection.course.title,
+					creditHours: courseSection.course.creditHours,
 				},
-				semester: `${section.semester.name} ${section.semester.year}`,
+				semester: `${courseSection.semester.name} ${courseSection.semester.year}`,
 				total: 0,
 				present: 0,
 				absent: 0,
@@ -940,7 +940,7 @@ const getMyGrades = async (userId: string) => {
 		include: {
 			exam: {
 				include: {
-					section: {
+					courseSection: {
 						include: {
 							course: true,
 							semester: true,
@@ -957,18 +957,18 @@ const getMyGrades = async (userId: string) => {
 	const grouped = new Map<string, CourseGrade>();
 
 	for (const result of results) {
-		const section = result.exam.section;
-		const key = section.id;
+		const courseSection = result.exam.courseSection;
+		const key = courseSection.id;
 
 		if (!grouped.has(key)) {
 			grouped.set(key, {
 				course: {
-					code: section.course.code,
-					title: section.course.title,
-					creditHours: section.course.creditHours,
+					code: courseSection.course.code,
+					title: courseSection.course.title,
+					creditHours: courseSection.course.creditHours,
 				},
-				semester: `${section.semester.name} ${section.semester.year}`,
-				sectionCode: section.sectionCode,
+				semester: `${courseSection.semester.name} ${courseSection.semester.year}`,
+				sectionCode: courseSection.sectionCode,
 				exams: [],
 				totalMarks: 0,
 				marksObtained: 0,
@@ -1024,7 +1024,7 @@ const getMyGradesDetails = async (
 			isDeleted: false,
 		},
 		include: {
-			section: {
+			courseSection: {
 				include: {
 					course: true,
 					semester: true,
@@ -1050,7 +1050,7 @@ const getMyGradesDetails = async (
 		throw new AppError(httpStatus.NOT_FOUND, "Registration not found");
 	}
 
-	const { attendances, exams, ...section } = registration.section;
+	const { attendances, exams, ...courseSection } = registration.courseSection;
 
 	const totalClasses = attendances.length;
 	const attendedClasses = attendances.filter(
@@ -1083,9 +1083,9 @@ const getMyGradesDetails = async (
 	return {
 		registrationId: registration.id,
 		status: registration.status,
-		course: section.course,
-		semester: section.semester,
-		sectionCode: section.sectionCode,
+		course: courseSection.course,
+		semester: courseSection.semester,
+		sectionCode: courseSection.sectionCode,
 		attendance: {
 			totalClasses,
 			attendedClasses,
@@ -1108,7 +1108,7 @@ const getMyCGPA = async (userId: string) => {
 			status: RegistrationStatus.COMPLETED,
 		},
 		include: {
-			section: {
+			courseSection: {
 				include: {
 					course: true,
 					exams: {
@@ -1128,9 +1128,9 @@ const getMyCGPA = async (userId: string) => {
 	let courseCount = 0;
 
 	for (const registration of registrations) {
-		const course = registration.section.course;
+		const course = registration.courseSection.course;
 
-		const gradePoints = registration.section.exams
+		const gradePoints = registration.courseSection.exams
 			.map((exam) => exam.results[0]?.gradePoint)
 			.filter(
 				(gradePoint): gradePoint is number =>

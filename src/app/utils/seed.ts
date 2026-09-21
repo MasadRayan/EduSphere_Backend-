@@ -193,8 +193,7 @@ export const seedAcademicData = async () => {
 			return;
 		}
 
-		const year =
-			Number(config.seed_semester_year) || new Date().getFullYear();
+		const year = Number(config.seed_semester_year) || new Date().getFullYear();
 
 		const semester = await prisma.semester.upsert({
 			where: {
@@ -228,7 +227,7 @@ export const seedAcademicData = async () => {
 			where: { departmentId: department.id, isDeleted: false },
 		});
 
-		await prisma.section.upsert({
+		await prisma.courseSection.upsert({
 			where: {
 				courseId_semesterId_sectionCode: {
 					courseId: course.id,
@@ -271,7 +270,7 @@ export const seedAcademicData = async () => {
 		}
 
 		console.log(
-			"Academic seed data ensured (semester, course, section, student section).",
+			"Academic seed data ensured (semester, course, course section, student section).",
 		);
 	} catch (error) {
 		console.log("Error Seeding Academic Data : ", error);

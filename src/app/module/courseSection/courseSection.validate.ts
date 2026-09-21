@@ -1,6 +1,6 @@
 import z from "zod";
 
-const CreateSectionZodSchema = z.object({
+const CreateCourseSectionZodSchema = z.object({
 	courseId: z.string().min(1, "Course is required"),
 	semesterId: z.string().min(1, "Semester is required"),
 	sectionCode: z
@@ -18,7 +18,7 @@ const CreateSectionZodSchema = z.object({
 		.optional(),
 });
 
-const UpdateSectionZodSchema = z.object({
+const UpdateCourseSectionZodSchema = z.object({
 	sectionCode: z
 		.string()
 		.min(1, "Section code is required")
@@ -40,8 +40,8 @@ const AssignInstructorZodSchema = z.object({
 	instructorId: z.string().min(1, "Instructor is required"),
 });
 
-export const SectionValidation = {
-	CreateSectionZodSchema,
-	UpdateSectionZodSchema,
+export const CourseSectionValidation = {
+	CreateCourseSectionZodSchema,
+	UpdateCourseSectionZodSchema,
 	AssignInstructorZodSchema,
 };

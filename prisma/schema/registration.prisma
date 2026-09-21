@@ -4,8 +4,8 @@ model CourseRegistration {
   studentId String
   student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  sectionId String
-  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  courseSectionId String
+  courseSection   CourseSection @relation(fields: [courseSectionId], references: [id], onDelete: Cascade)
 
   status       RegistrationStatus @default(PENDING)
   registeredAt DateTime           @default(now())
@@ -13,8 +13,8 @@ model CourseRegistration {
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
-  @@unique([studentId, sectionId])
-  @@index([sectionId])
+  @@unique([studentId, courseSectionId])
+  @@index([courseSectionId])
   @@index([studentId])
   @@map("course_registrations")
 }

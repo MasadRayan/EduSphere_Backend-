@@ -2517,14 +2517,14 @@ Deletes the semester. Blocked while any `Section` references it, to protect acad
 
 ---
 
-# EduSphere — Section Module API Documentation
+# EduSphere — Course Section Module API Documentation
 
-A `Section` is one offering of a course in a semester, optionally taught by an instructor (`Course × Semester × Section`). `(courseId, semesterId, sectionCode)` is unique. `courseId` and `semesterId` are immutable after creation. Reads are open to any authenticated role; writes require `ADMIN` or `SUPER_ADMIN`.
+A `CourseSection` is one offering of a course in a semester, optionally taught by an instructor (`Course × Semester × Section`). `(courseId, semesterId, sectionCode)` is unique. `courseId` and `semesterId` are immutable after creation. Reads are open to any authenticated role; writes require `ADMIN` or `SUPER_ADMIN`.
 
-## 1. Create Section
+## 1. Create Course Section
 
 ```
-POST /api/sections
+POST /api/course-sections
 ```
 
 ### Auth & Roles
@@ -2557,19 +2557,19 @@ POST /api/sections
 
 ### Response (201 Created)
 
-Returns the created section including `course`, `semester`, and `instructor` (with the instructor's `user.name`/`user.email`).
+Returns the created course section including `course`, `semester`, and `instructor` (with the instructor's `user.name`/`user.email`).
 
 ### Error Responses
 
 | Status | Message |
 |--------|---------|
 | 404 | `"Course not found"` / `"Semester not found"` / `"Instructor not found"` |
-| 409 | `"Section with this code already exists for this course and semester"` |
+| 409 | `"Course section with this code already exists for this course and semester"` |
 
-## 2. List Sections
+## 2. List Course Sections
 
 ```
-GET /api/sections?courseId=&semesterId=&instructorId=&page=&limit=
+GET /api/course-sections?courseId=&semesterId=&instructorId=&page=&limit=
 ```
 
 ### Auth & Roles
@@ -2590,10 +2590,10 @@ GET /api/sections?courseId=&semesterId=&instructorId=&page=&limit=
 
 Paginated `data` plus `meta`. Each item includes `course`, `semester`, and `instructor`.
 
-## 3. Get Section by ID
+## 3. Get Course Section by ID
 
 ```
-GET /api/sections/:id
+GET /api/course-sections/:id
 ```
 
 ### Auth & Roles
@@ -2604,12 +2604,12 @@ GET /api/sections/:id
 
 | Status | Message |
 |--------|---------|
-| 404 | `"Section not found"` |
+| 404 | `"Course section not found"` |
 
-## 4. Update Section
+## 4. Update Course Section
 
 ```
-PATCH /api/sections/:id
+PATCH /api/course-sections/:id
 ```
 
 ### Auth & Roles
@@ -2624,13 +2624,13 @@ Any of `sectionCode`, `instructorId`, `capacity`, `schedule` (all optional). `co
 
 | Status | Message |
 |--------|---------|
-| 404 | `"Section not found"` / `"Instructor not found"` |
-| 409 | `"Section with this code already exists for this course and semester"` |
+| 404 | `"Course section not found"` / `"Instructor not found"` |
+| 409 | `"Course section with this code already exists for this course and semester"` |
 
 ## 5. Assign Instructor
 
 ```
-PATCH /api/sections/:id/assign-instructor
+PATCH /api/course-sections/:id/assign-instructor
 ```
 
 ### Auth & Roles
@@ -2647,12 +2647,12 @@ PATCH /api/sections/:id/assign-instructor
 
 | Status | Message |
 |--------|---------|
-| 404 | `"Section not found"` / `"Instructor not found"` |
+| 404 | `"Course section not found"` / `"Instructor not found"` |
 
-## 6. Delete Section (hard, cascading)
+## 6. Delete Course Section (hard, cascading)
 
 ```
-DELETE /api/sections/:id
+DELETE /api/course-sections/:id
 ```
 
 ### Auth & Roles
@@ -2661,7 +2661,7 @@ DELETE /api/sections/:id
 
 ### Response (200 OK)
 
-Permanently deletes the section; `ON DELETE CASCADE` removes its registrations, attendance, exams, and results. Returns the deleted section row.
+Permanently deletes the course section; `ON DELETE CASCADE` removes its registrations, attendance, exams, and results. Returns the deleted section row.
 
 > **Warning:** This is destructive and irreversible.
 
@@ -2669,18 +2669,18 @@ Permanently deletes the section; `ON DELETE CASCADE` removes its registrations, 
 
 | Status | Message |
 |--------|---------|
-| 404 | `"Section not found"` |
+| 404 | `"Course section not found"` |
 
-## Section Module — Route Summary
+## Course Section Module — Route Summary
 
 | # | Method | Route | Auth | Description |
 |---|--------|-------|------|-------------|
-| 1 | POST | `/api/sections` | ADMIN, SUPER_ADMIN | Create a section |
-| 2 | GET | `/api/sections` | all roles | List sections (filter + pagination) |
-| 3 | GET | `/api/sections/:id` | all roles | Get a section |
-| 4 | PATCH | `/api/sections/:id` | ADMIN, SUPER_ADMIN | Update a section |
-| 5 | PATCH | `/api/sections/:id/assign-instructor` | ADMIN, SUPER_ADMIN | Assign an instructor |
-| 6 | DELETE | `/api/sections/:id` | ADMIN, SUPER_ADMIN | Hard-delete a section (cascades) |
+| 1 | POST | `/api/course-sections` | ADMIN, SUPER_ADMIN | Create a course section |
+| 2 | GET | `/api/course-sections` | all roles | List course sections (filter + pagination) |
+| 3 | GET | `/api/course-sections/:id` | all roles | Get a course section |
+| 4 | PATCH | `/api/course-sections/:id` | ADMIN, SUPER_ADMIN | Update a course section |
+| 5 | PATCH | `/api/course-sections/:id/assign-instructor` | ADMIN, SUPER_ADMIN | Assign an instructor |
+| 6 | DELETE | `/api/course-sections/:id` | ADMIN, SUPER_ADMIN | Hard-delete a course section (cascades) |
 
 ---
 
@@ -2688,7 +2688,7 @@ Permanently deletes the section; `ON DELETE CASCADE` removes its registrations, 
 
 A `StudentSection` is the student's **fixed academic section** (batch) for their entire university life. It is keyed by `(programId, enrollmentYear, sectionCode)` — e.g. "B.Sc in Computer Science · 2026 · Section A" — and has a `capacity` (seats).
 
-Unlike a course `Section` (a single course offering in a semester), a `StudentSection` is permanent: a student admitted to Section A stays in Section A until they leave. Seat availability is **computed on the fly**:
+Unlike a course `CourseSection` model (a single course offering in a semester), a `StudentSection` is permanent: a student admitted to Section A stays in Section A until they leave. Seat availability is **computed on the fly**:
 
 ```
 enrolledCount = count of non-deleted StudentProfiles in the section

@@ -1,8 +1,8 @@
 model Exam {
   id String @id @default(uuid())
 
-  sectionId String
-  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  courseSectionId String
+  courseSection   CourseSection @relation(fields: [courseSectionId], references: [id], onDelete: Cascade)
 
   type       ExamType
   date       DateTime
@@ -13,6 +13,6 @@ model Exam {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([sectionId])
+  @@index([courseSectionId])
   @@map("exams")
 }

@@ -11,7 +11,7 @@ import type {
 const semesterInclude = {
 	_count: {
 		select: {
-			sections: true,
+			courseSections: true,
 			students: true,
 		},
 	},
@@ -177,14 +177,14 @@ const deleteSemester = async (id: string) => {
 		throw new AppError(httpStatus.NOT_FOUND, "Semester not found");
 	}
 
-	const sectionCount = await prisma.section.count({
+	const courseSectionCount = await prisma.courseSection.count({
 		where: { semesterId: id },
 	});
 
-	if (sectionCount > 0) {
+	if (courseSectionCount > 0) {
 		throw new AppError(
 			httpStatus.CONFLICT,
-			"Semester has sections; delete or move them first",
+			"Semester has course sections; delete or move them first",
 		);
 	}
 

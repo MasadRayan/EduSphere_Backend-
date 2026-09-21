@@ -11,7 +11,7 @@ model InstructorProfile {
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
-  sections Section[]
+  courseSections CourseSection[]
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime?

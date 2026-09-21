@@ -6,7 +6,7 @@ model Semester {
   endDate   DateTime
   isActive  Boolean  @default(false)
 
-  sections Section[]
+  courseSections CourseSection[]
   students StudentProfile[]
 
   createdAt DateTime @default(now())
