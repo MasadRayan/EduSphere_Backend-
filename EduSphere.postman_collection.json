@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "19d90ad1-01d3-41d1-9b0f-0fbfb89a38ef",
     "name": "EduSphere",
-    "description": "EduSphere University Management System — complete API collection.\n\nSet `baseURL` in collection variables. Login/Verify Email/Google Login/Refresh Token automatically save `accessToken` and `refreshToken`. Creating a department/program and submitting an application automatically saves `departmentId`, `programId`, and `applicationId`.",
+    "description": "EduSphere University Management System — complete API collection.\n\nSet `baseURL` in collection variables. Login/Verify Email/Google Login/Refresh Token automatically save `accessToken` and `refreshToken`. Creating a department/program/course/semester/section and submitting an application automatically saves `departmentId`, `programId`, `courseId`, `semesterId`, `sectionId`, and `applicationId`. Set `instructorId` manually (an InstructorProfile id) before creating a section with an instructor.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "49925275",
     "_collection_link": "https://go.postman.co/collection/49925275-19d90ad1-01d3-41d1-9b0f-0fbfb89a38ef?source=collection_link"
@@ -1173,6 +1173,599 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Courses",
+      "item": [
+        {
+          "name": "Create Course",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('courseId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"CSE201\",\n  \"title\": \"Data Structures\",\n  \"creditHours\": 3,\n  \"departmentId\": \"{{departmentId}}\",\n  \"prerequisiteIds\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/courses",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "description": "Creates a course (optionally with prerequisites). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `courseId`."
+          },
+          "response": []
+        },
+        {
+          "name": "List Courses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/courses?departmentId=&searchTerm=&page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ],
+              "query": [
+                {
+                  "key": "departmentId",
+                  "value": ""
+                },
+                {
+                  "key": "searchTerm",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lists courses with department and prerequisites. Roles: any authenticated."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Course by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/courses/{{courseId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{courseId}}"
+              ]
+            },
+            "description": "Fetches a course by id. Roles: any authenticated."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Course",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Data Structures and Algorithms\",\n  \"creditHours\": 4\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/courses/{{courseId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{courseId}}"
+              ]
+            },
+            "description": "Updates a course; `prerequisiteIds` replaces the prerequisite set. Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Course",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/courses/{{courseId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{courseId}}"
+              ]
+            },
+            "description": "Hard-deletes a course (cascades sections + prerequisites). Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Semesters",
+      "item": [
+        {
+          "name": "Create Semester",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('semesterId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Fall\",\n  \"year\": 2026,\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-12-31\",\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/semesters",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "semesters"
+              ]
+            },
+            "description": "Creates a semester (setting isActive deactivates all others). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `semesterId`."
+          },
+          "response": []
+        },
+        {
+          "name": "List Semesters",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/semesters?year=&isActive=&searchTerm=&page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "semesters"
+              ],
+              "query": [
+                {
+                  "key": "year",
+                  "value": ""
+                },
+                {
+                  "key": "isActive",
+                  "value": ""
+                },
+                {
+                  "key": "searchTerm",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lists semesters with section/student counts. Roles: any authenticated."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Semester by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "semesters",
+                "{{semesterId}}"
+              ]
+            },
+            "description": "Fetches a semester by id. Roles: any authenticated."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Semester",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "semesters",
+                "{{semesterId}}"
+              ]
+            },
+            "description": "Updates a semester. Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Semester",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "semesters",
+                "{{semesterId}}"
+              ]
+            },
+            "description": "Deletes a semester; blocked (409) if sections exist. Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sections",
+      "item": [
+        {
+          "name": "Create Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('sectionId', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"sectionCode\": \"A\",\n  \"instructorId\": \"{{instructorId}}\",\n  \"capacity\": 40,\n  \"schedule\": \"Sun/Tue 10:00-11:30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/sections",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "sections"
+              ]
+            },
+            "description": "Creates a section for a course + semester (optional instructor). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `sectionId`."
+          },
+          "response": []
+        },
+        {
+          "name": "List Sections",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/sections?courseId=&semesterId=&instructorId=&page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "sections"
+              ],
+              "query": [
+                {
+                  "key": "courseId",
+                  "value": ""
+                },
+                {
+                  "key": "semesterId",
+                  "value": ""
+                },
+                {
+                  "key": "instructorId",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lists sections with course, semester, and instructor. Roles: any authenticated."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Section by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/sections/{{sectionId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "sections",
+                "{{sectionId}}"
+              ]
+            },
+            "description": "Fetches a section by id. Roles: any authenticated."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Section",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"capacity\": 45,\n  \"schedule\": \"Sun/Tue 12:00-13:30\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/sections/{{sectionId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "sections",
+                "{{sectionId}}"
+              ]
+            },
+            "description": "Updates sectionCode/instructorId/capacity/schedule (course and semester are immutable). Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Assign Instructor",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"instructorId\": \"{{instructorId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/sections/{{sectionId}}/assign-instructor",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "sections",
+                "{{sectionId}}",
+                "assign-instructor"
+              ]
+            },
+            "description": "Assigns an instructor to a section. Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Section",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/sections/{{sectionId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "sections",
+                "{{sectionId}}"
+              ]
+            },
+            "description": "Hard-deletes a section (cascades registrations/attendance/exams/results). Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -1202,6 +1795,22 @@
     },
     {
       "key": "registrationId",
+      "value": ""
+    },
+    {
+      "key": "courseId",
+      "value": ""
+    },
+    {
+      "key": "semesterId",
+      "value": ""
+    },
+    {
+      "key": "sectionId",
+      "value": ""
+    },
+    {
+      "key": "instructorId",
       "value": ""
     }
   ]

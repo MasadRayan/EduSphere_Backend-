@@ -37,4 +37,12 @@ export default {
 	teacher_password: process.env.TEACHER_PASSWORD,
 	seed_department_name: process.env.SEED_DEPARTMENT_NAME ?? "Computer Science",
 	seed_department_code: process.env.SEED_DEPARTMENT_CODE ?? "CSE",
+	seed_semester_name: process.env.SEED_SEMESTER_NAME ?? "Fall",
+	seed_semester_year: process.env.SEED_SEMESTER_YEAR ?? "2026",
+	seed_course_code: process.env.SEED_COURSE_CODE ?? "CSE101",
+	seed_course_title:
+		process.env.SEED_COURSE_TITLE ?? "Introduction to Programming",
+	seed_course_credit_hours: process.env.SEED_COURSE_CREDIT_HOURS ?? "3",
+	seed_section_code: process.env.SEED_SECTION_CODE ?? "A",
+	seed_section_capacity: process.env.SEED_SECTION_CAPACITY ?? "40",
 };

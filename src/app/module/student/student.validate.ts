@@ -19,6 +19,14 @@ const UpdateMyProfileZodSchema = z.object({
 const ApproveApplicationZodSchema = z.object({
 	studentId: z.string().min(1, "Student ID is required"),
 	reviewNote: z.string().optional(),
+	currentSemesterId: z.string().min(1).optional(),
+});
+
+const UpdateCurrentSemesterZodSchema = z.object({
+	currentSemesterId: z
+		.string()
+		.min(1, "Semester id cannot be empty")
+		.nullable(),
 });
 
 const RejectApplicationZodSchema = z.object({
@@ -30,4 +38,5 @@ export const StudentValidation = {
 	UpdateMyProfileZodSchema,
 	ApproveApplicationZodSchema,
 	RejectApplicationZodSchema,
+	UpdateCurrentSemesterZodSchema,
 };

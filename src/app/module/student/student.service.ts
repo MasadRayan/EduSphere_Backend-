@@ -20,6 +20,7 @@ import type {
 	IGetApplicationsQuery,
 	IRejectApplicationPayload,
 	IStudentApplyPayload,
+	IUpdateCurrentSemesterPayload,
 	IUpdateMyProfilePayload,
 } from "./student.interface";
 
@@ -311,6 +312,16 @@ const approveApplication = async (
 		throw new AppError(httpStatus.CONFLICT, "Student ID already in use");
 	}
 
+	if (payload.currentSemesterId) {
+		const semester = await prisma.semester.findUnique({
+			where: { id: payload.currentSemesterId },
+		});
+
+		if (!semester) {
+			throw new AppError(httpStatus.NOT_FOUND, "Semester not found");
+		}
+	}
+
 	const studentProfile = await prisma.studentProfile.create({
 		data: {
 			userId: application.userId,
@@ -321,11 +332,13 @@ const approveApplication = async (
 			avatarPublicId: application.avatarPublicId,
 			departmentId: application.departmentId,
 			programId: application.programId,
+			currentSemesterId: payload.currentSemesterId,
 			enrollmentYear: application.enrollmentYear,
 		},
 		include: {
 			department: true,
 			program: true,
+			currentSemester: true,
 		},
 	});
 
@@ -553,6 +566,7 @@ const getMyInfo = async (userId: string) => {
 				include: {
 					department: true,
 					program: true,
+					currentSemester: true,
 				},
 			},
 			studentApplication: {
@@ -572,6 +586,41 @@ const getMyInfo = async (userId: string) => {
 	}
 
 	return user;
+};
+
+const updateCurrentSemester = async (
+	studentProfileId: string,
+	payload: IUpdateCurrentSemesterPayload,
+) => {
+	const profile = await prisma.studentProfile.findUnique({
+		where: { id: studentProfileId },
+	});
+
+	if (!profile) {
+		throw new AppError(httpStatus.NOT_FOUND, "Student profile not found");
+	}
+
+	if (payload.currentSemesterId) {
+		const semester = await prisma.semester.findUnique({
+			where: { id: payload.currentSemesterId },
+		});
+
+		if (!semester) {
+			throw new AppError(httpStatus.NOT_FOUND, "Semester not found");
+		}
+	}
+
+	return prisma.studentProfile.update({
+		where: { id: studentProfileId },
+		data: {
+			currentSemesterId: payload.currentSemesterId,
+		},
+		include: {
+			department: true,
+			program: true,
+			currentSemester: true,
+		},
+	});
 };
 
 const registeredCourses = async (userId: string) => {
@@ -989,6 +1038,7 @@ export const StudentService = {
 	rejectApplication,
 	updateMyProfile,
 	updateMyProfileImage,
+	updateCurrentSemester,
 	getMyInfo,
 	registeredCourses,
 	registeredCourseDetails,

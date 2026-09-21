@@ -84,5 +84,11 @@ router.patch(
 	validateRequest(StudentValidation.RejectApplicationZodSchema),
 	StudentController.rejectApplication,
 );
+router.patch(
+	"/:id/current-semester",
+	auth(Role.ADMIN, Role.SUPER_ADMIN),
+	validateRequest(StudentValidation.UpdateCurrentSemesterZodSchema),
+	StudentController.updateCurrentSemester,
+);
 
 export const StudentRoutes = router;

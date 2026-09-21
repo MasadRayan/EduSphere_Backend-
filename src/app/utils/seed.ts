@@ -108,20 +108,6 @@ export const seedTeacher = async () => {
 			"Teacher Name, Email, Password Missing In Env File!!!",
 		);
 
-		const isTeacherExist = await prisma.user.findUnique({
-			where: {
-				email: email as string,
-			},
-		});
-
-		if (isTeacherExist) {
-			console.log("Teacher Already Exists!");
-			return;
-		}
-
-		const name = config.teacher_name as string;
-		const password = config.teacher_password as string;
-
 		const department = await prisma.department.upsert({
 			where: {
 				name: config.seed_department_name,
@@ -132,6 +118,37 @@ export const seedTeacher = async () => {
 				code: config.seed_department_code,
 			},
 		});
+
+		const existingTeacher = await prisma.user.findUnique({
+			where: {
+				email: email as string,
+			},
+			include: {
+				instructorProfile: true,
+			},
+		});
+
+		if (existingTeacher) {
+			if (!existingTeacher.instructorProfile) {
+				await prisma.instructorProfile.create({
+					data: {
+						userId: existingTeacher.id,
+						fullName: existingTeacher.name,
+						departmentId: department.id,
+						designation: "Lecturer",
+					},
+				});
+
+				console.log("Teacher Instructor Profile Recreated!");
+			} else {
+				console.log("Teacher Already Exists!");
+			}
+
+			return;
+		}
+
+		const name = config.teacher_name as string;
+		const password = config.teacher_password as string;
 
 		const hashedPassword = await bcrypt.hash(password, getSaltRounds());
 
@@ -165,8 +182,80 @@ export const seedTeacher = async () => {
 	}
 };
 
+export const seedAcademicData = async () => {
+	try {
+		const department = await prisma.department.findUnique({
+			where: { name: config.seed_department_name },
+		});
+
+		if (!department) {
+			console.log("Seed department missing; skipping academic seed data.");
+			return;
+		}
+
+		const year =
+			Number(config.seed_semester_year) || new Date().getFullYear();
+
+		const semester = await prisma.semester.upsert({
+			where: {
+				name_year: {
+					name: config.seed_semester_name,
+					year,
+				},
+			},
+			update: {},
+			create: {
+				name: config.seed_semester_name,
+				year,
+				startDate: new Date(Date.UTC(year, 8, 1)),
+				endDate: new Date(Date.UTC(year, 11, 31)),
+				isActive: true,
+			},
+		});
+
+		const course = await prisma.course.upsert({
+			where: { code: config.seed_course_code },
+			update: {},
+			create: {
+				code: config.seed_course_code,
+				title: config.seed_course_title,
+				creditHours: Number(config.seed_course_credit_hours) || 3,
+				departmentId: department.id,
+			},
+		});
+
+		const instructor = await prisma.instructorProfile.findFirst({
+			where: { departmentId: department.id, isDeleted: false },
+		});
+
+		await prisma.section.upsert({
+			where: {
+				courseId_semesterId_sectionCode: {
+					courseId: course.id,
+					semesterId: semester.id,
+					sectionCode: config.seed_section_code,
+				},
+			},
+			update: {},
+			create: {
+				courseId: course.id,
+				semesterId: semester.id,
+				sectionCode: config.seed_section_code,
+				instructorId: instructor?.id ?? null,
+				capacity: Number(config.seed_section_capacity) || 40,
+				schedule: "Sun/Tue 10:00-11:30",
+			},
+		});
+
+		console.log("Academic seed data ensured (semester, course, section).");
+	} catch (error) {
+		console.log("Error Seeding Academic Data : ", error);
+	}
+};
+
 export const seedDatabase = async () => {
 	await seedSuperAdmin();
 	await seedAdmin();
 	await seedTeacher();
+	await seedAcademicData();
 };

@@ -15,6 +15,11 @@ export interface IUpdateMyProfilePayload {
 export interface IApproveApplicationPayload {
 	studentId: string;
 	reviewNote?: string;
+	currentSemesterId?: string;
+}
+
+export interface IUpdateCurrentSemesterPayload {
+	currentSemesterId: string | null;
 }
 
 export interface IRejectApplicationPayload {

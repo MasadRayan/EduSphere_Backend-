@@ -707,6 +707,7 @@ GET /api/student/me
       "avatarPublicId": "avatars/abc123",
       "departmentId": "11111111-2222-3333-4444-555555555555",
       "programId": "66666666-7777-8888-9999-000000000000",
+      "currentSemesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
       "enrollmentYear": 2026,
       "cgpa": 3.75,
       "isDeleted": false,
@@ -724,6 +725,14 @@ GET /api/student/me
         "degreeType": "Bachelor's",
         "totalCredits": 140,
         "departmentId": "11111111-2222-3333-4444-555555555555"
+      },
+      "currentSemester": {
+        "id": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+        "name": "Fall",
+        "year": 2026,
+        "startDate": "2026-09-01T00:00:00.000Z",
+        "endDate": "2026-12-31T00:00:00.000Z",
+        "isActive": true
       }
     },
     "studentApplication": {
@@ -1476,17 +1485,19 @@ PATCH /api/student/applications/:id/approve
 
 ### Request Body
 
-| Field        | Type   | Required | Rules |
-|--------------|--------|----------|-------|
-| `studentId`  | string | Yes      | University roll/registration number (must be unique) |
-| `reviewNote` | string | No       | — |
+| Field               | Type   | Required | Rules |
+|---------------------|--------|----------|-------|
+| `studentId`         | string | Yes      | University roll/registration number (must be unique) |
+| `reviewNote`        | string | No       | — |
+| `currentSemesterId` | string | No       | Must reference an existing semester |
 
 ### Demo Input
 
 ```json
 {
   "studentId": "CS-2026-0001",
-  "reviewNote": "Welcome aboard!"
+  "reviewNote": "Welcome aboard!",
+  "currentSemesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111"
 }
 ```
 
@@ -1507,6 +1518,7 @@ PATCH /api/student/applications/:id/approve
     "avatarPublicId": null,
     "departmentId": "11111111-2222-3333-4444-555555555555",
     "programId": "66666666-7777-8888-9999-000000000000",
+    "currentSemesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
     "enrollmentYear": 2026,
     "cgpa": 0,
     "isDeleted": false,
@@ -1524,6 +1536,14 @@ PATCH /api/student/applications/:id/approve
       "degreeType": "Bachelor's",
       "totalCredits": 140,
       "departmentId": "11111111-2222-3333-4444-555555555555"
+    },
+    "currentSemester": {
+      "id": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+      "name": "Fall",
+      "year": 2026,
+      "startDate": "2026-09-01T00:00:00.000Z",
+      "endDate": "2026-12-31T00:00:00.000Z",
+      "isActive": true
     }
   }
 }
@@ -1535,7 +1555,7 @@ PATCH /api/student/applications/:id/approve
 
 | Status | Message |
 |--------|---------|
-| 404 | `"Application not found"` |
+| 404 | `"Application not found"` / `"Semester not found"` |
 | 409 | `"Application already reviewed"` |
 | 409 | `"Student ID already in use"` |
 
@@ -1609,6 +1629,48 @@ PATCH /api/student/applications/:id/reject
 
 ---
 
+## 16. Update Student Current Semester (Admin)
+
+Sets or clears the `currentSemester` on a student profile. Send `null` to clear it.
+
+```
+PATCH /api/student/:id/current-semester
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN`
+
+### Path Parameters
+
+`id` — the `StudentProfile` id (uuid)
+
+### Request Body
+
+| Field               | Type           | Required | Rules |
+|---------------------|----------------|----------|-------|
+| `currentSemesterId` | string \| null | Yes      | Existing semester id, or `null` to clear |
+
+### Demo Input
+
+```json
+{
+  "currentSemesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111"
+}
+```
+
+### Response (200 OK)
+
+Returns the updated `StudentProfile` with `department`, `program`, and `currentSemester`.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Student profile not found"` / `"Semester not found"` |
+
+---
+
 ## Student Module — Route Summary
 
 | # | Method | Route | Auth | Description |
@@ -1628,6 +1690,7 @@ PATCH /api/student/applications/:id/reject
 | 13 | GET | `/api/student/applications` | ADMIN, SUPER_ADMIN | List all applications |
 | 14 | PATCH | `/api/student/applications/:id/approve` | ADMIN, SUPER_ADMIN | Approve application |
 | 15 | PATCH | `/api/student/applications/:id/reject` | ADMIN, SUPER_ADMIN | Reject application |
+| 16 | PATCH | `/api/student/:id/current-semester` | ADMIN, SUPER_ADMIN | Set/clear a student's current semester |
 
 ---
 
@@ -2028,3 +2091,489 @@ Permanently deletes the program and, via `ON DELETE CASCADE`, its student profil
 | 3 | GET | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Get a program |
 | 4 | PATCH | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Update a program |
 | 5 | DELETE | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Hard-delete a program (cascades) |
+
+---
+
+# EduSphere — Course Module API Documentation
+
+Courses belong to a department (`Course.departmentId`) and may declare other courses as prerequisites (`CoursePrerequisite`). `code` is globally unique. Reads are open to any authenticated role; writes require `ADMIN` or `SUPER_ADMIN`.
+
+## 1. Create Course
+
+```
+POST /api/courses
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+| Field             | Type     | Required | Rules |
+|-------------------|----------|----------|-------|
+| `code`            | string   | Yes      | 2–20 characters, globally unique |
+| `title`           | string   | Yes      | 2–200 characters |
+| `creditHours`     | number   | Yes      | Positive integer |
+| `departmentId`    | string   | Yes      | Must reference an existing department |
+| `prerequisiteIds` | string[] | No       | Existing course ids; no duplicates, not self |
+
+### Demo Input
+
+```json
+{
+  "code": "CSE201",
+  "title": "Data Structures",
+  "creditHours": 3,
+  "departmentId": "11111111-2222-3333-4444-555555555555",
+  "prerequisiteIds": ["22222222-3333-4444-5555-666666666666"]
+}
+```
+
+### Response (201 Created)
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Course created successfully",
+  "data": {
+    "id": "33333333-4444-5555-6666-777777777777",
+    "code": "CSE201",
+    "title": "Data Structures",
+    "creditHours": 3,
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "isDeleted": false,
+    "deletedAt": null,
+    "department": { "id": "11111111-2222-3333-4444-555555555555", "name": "Computer Science", "code": "CSE" },
+    "prerequisites": [
+      { "id": "…", "courseId": "33333333-…", "prerequisiteId": "22222222-…", "prerequisite": { "code": "CSE101", "title": "Introduction to Programming" } }
+    ]
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 400 | `"One or more prerequisite courses were not found"` / `"Duplicate prerequisite course ids are not allowed"` / `"A course cannot be a prerequisite of itself"` |
+| 404 | `"Department not found"` |
+| 409 | `"Course with this code already exists"` |
+
+## 2. List Courses
+
+```
+GET /api/courses?departmentId=&searchTerm=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`, `STUDENT`
+
+### Query Parameters
+
+| Field          | Type   | Required | Notes |
+|----------------|--------|----------|-------|
+| `departmentId` | string | No       | Filter by department |
+| `searchTerm`   | string | No       | Matches `code` or `title` (case-insensitive) |
+| `page`         | number | No       | Default `1` |
+| `limit`        | number | No       | Default `10`, max `100` |
+
+### Response (200 OK)
+
+Paginated `data` array plus `meta: { page, limit, total, totalPages }`. Each item includes `department` and `prerequisites`.
+
+## 3. Get Course by ID
+
+```
+GET /api/courses/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`, `STUDENT`
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Course not found"` |
+
+## 4. Update Course
+
+```
+PATCH /api/courses/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+Any of `code`, `title`, `creditHours`, `departmentId`, `prerequisiteIds` (all optional). When `prerequisiteIds` is provided it **replaces** the current prerequisite set (send `[]` to clear).
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 400 | Prerequisite validation errors |
+| 404 | `"Course not found"` / `"Department not found"` |
+| 409 | `"Course with this code already exists"` |
+
+## 5. Delete Course (hard, cascading)
+
+```
+DELETE /api/courses/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+Permanently deletes the course; `ON DELETE CASCADE` removes its sections (and their registrations/attendance/exams/results) and prerequisite links. Returns the deleted course row.
+
+> **Warning:** This is destructive and irreversible.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Course not found"` |
+
+## Course Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/courses` | ADMIN, SUPER_ADMIN | Create a course (with prerequisites) |
+| 2 | GET | `/api/courses` | all roles | List courses (filter + search + pagination) |
+| 3 | GET | `/api/courses/:id` | all roles | Get a course |
+| 4 | PATCH | `/api/courses/:id` | ADMIN, SUPER_ADMIN | Update a course / replace prerequisites |
+| 5 | DELETE | `/api/courses/:id` | ADMIN, SUPER_ADMIN | Hard-delete a course (cascades) |
+
+---
+
+# EduSphere — Semester Module API Documentation
+
+Semesters (`name`, `year`, `startDate`, `endDate`, `isActive`) are the "when" of the academic calendar and are referenced by `Section`. `(name, year)` is unique. Only one semester is active at a time. Reads are open to any authenticated role; writes require `ADMIN` or `SUPER_ADMIN`.
+
+## 1. Create Semester
+
+```
+POST /api/semesters
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+| Field       | Type    | Required | Rules |
+|-------------|---------|----------|-------|
+| `name`      | string  | Yes      | 2–50 characters, unique with `year` |
+| `year`      | number  | Yes      | 2000–2100 |
+| `startDate` | date    | Yes      | ISO date string |
+| `endDate`   | date    | Yes      | Must be after `startDate` |
+| `isActive`  | boolean | No       | Default `false`; setting `true` deactivates all others |
+
+### Demo Input
+
+```json
+{
+  "name": "Fall",
+  "year": 2026,
+  "startDate": "2026-09-01",
+  "endDate": "2026-12-31",
+  "isActive": true
+}
+```
+
+### Response (201 Created)
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Semester created successfully",
+  "data": {
+    "id": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+    "name": "Fall",
+    "year": 2026,
+    "startDate": "2026-09-01T00:00:00.000Z",
+    "endDate": "2026-12-31T00:00:00.000Z",
+    "isActive": true,
+    "_count": { "sections": 0, "students": 0 }
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 400 | `"startDate must be before endDate"` |
+| 409 | `"Semester with this name and year already exists"` |
+
+## 2. List Semesters
+
+```
+GET /api/semesters?year=&isActive=&searchTerm=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`, `STUDENT`
+
+### Query Parameters
+
+| Field        | Type    | Required | Notes |
+|--------------|---------|----------|-------|
+| `year`       | number  | No       | Filter by year |
+| `isActive`   | boolean | No       | `true` / `false` |
+| `searchTerm` | string  | No       | Matches `name` (case-insensitive) |
+| `page`       | number  | No       | Default `1` |
+| `limit`      | number  | No       | Default `10`, max `100` |
+
+### Response (200 OK)
+
+Paginated `data` plus `meta`. Each item includes `_count.sections` and `_count.students`.
+
+## 3. Get Semester by ID
+
+```
+GET /api/semesters/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`, `STUDENT`
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Semester not found"` |
+
+## 4. Update Semester
+
+```
+PATCH /api/semesters/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+Any of `name`, `year`, `startDate`, `endDate`, `isActive` (all optional). Setting `isActive: true` deactivates all other semesters.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 400 | `"startDate must be before endDate"` |
+| 404 | `"Semester not found"` |
+| 409 | `"Semester with this name and year already exists"` |
+
+## 5. Delete Semester
+
+```
+DELETE /api/semesters/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+Deletes the semester. Blocked while any `Section` references it, to protect academic records.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Semester not found"` |
+| 409 | `"Semester has sections; delete or move them first"` |
+
+## Semester Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/semesters` | ADMIN, SUPER_ADMIN | Create a semester (single-active enforced) |
+| 2 | GET | `/api/semesters` | all roles | List semesters (filter + search + pagination) |
+| 3 | GET | `/api/semesters/:id` | all roles | Get a semester |
+| 4 | PATCH | `/api/semesters/:id` | ADMIN, SUPER_ADMIN | Update a semester |
+| 5 | DELETE | `/api/semesters/:id` | ADMIN, SUPER_ADMIN | Delete (blocked if sections exist) |
+
+---
+
+# EduSphere — Section Module API Documentation
+
+A `Section` is one offering of a course in a semester, optionally taught by an instructor (`Course × Semester × Section`). `(courseId, semesterId, sectionCode)` is unique. `courseId` and `semesterId` are immutable after creation. Reads are open to any authenticated role; writes require `ADMIN` or `SUPER_ADMIN`.
+
+## 1. Create Section
+
+```
+POST /api/sections
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+| Field          | Type    | Required | Rules |
+|----------------|---------|----------|-------|
+| `courseId`     | string  | Yes      | Existing course |
+| `semesterId`   | string  | Yes      | Existing semester |
+| `sectionCode`  | string  | Yes      | 1–10 characters; unique per course + semester |
+| `instructorId` | string  | No       | Existing instructor profile; omit/`null` = unassigned |
+| `capacity`     | number  | Yes      | Positive integer |
+| `schedule`     | string  | No       | e.g. `"Sun/Tue 10:00-11:30"` |
+
+### Demo Input
+
+```json
+{
+  "courseId": "33333333-4444-5555-6666-777777777777",
+  "semesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+  "sectionCode": "A",
+  "instructorId": "99999999-8888-7777-6666-555555555555",
+  "capacity": 40,
+  "schedule": "Sun/Tue 10:00-11:30"
+}
+```
+
+### Response (201 Created)
+
+Returns the created section including `course`, `semester`, and `instructor` (with the instructor's `user.name`/`user.email`).
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Course not found"` / `"Semester not found"` / `"Instructor not found"` |
+| 409 | `"Section with this code already exists for this course and semester"` |
+
+## 2. List Sections
+
+```
+GET /api/sections?courseId=&semesterId=&instructorId=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`, `STUDENT`
+
+### Query Parameters
+
+| Field          | Type   | Required | Notes |
+|----------------|--------|----------|-------|
+| `courseId`     | string | No       | Filter by course |
+| `semesterId`   | string | No       | Filter by semester |
+| `instructorId` | string | No       | Filter by instructor |
+| `page`         | number | No       | Default `1` |
+| `limit`        | number | No       | Default `10`, max `100` |
+
+### Response (200 OK)
+
+Paginated `data` plus `meta`. Each item includes `course`, `semester`, and `instructor`.
+
+## 3. Get Section by ID
+
+```
+GET /api/sections/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`, `STUDENT`
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Section not found"` |
+
+## 4. Update Section
+
+```
+PATCH /api/sections/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+Any of `sectionCode`, `instructorId`, `capacity`, `schedule` (all optional). `courseId` and `semesterId` cannot be changed. Send `instructorId: null` to unassign.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Section not found"` / `"Instructor not found"` |
+| 409 | `"Section with this code already exists for this course and semester"` |
+
+## 5. Assign Instructor
+
+```
+PATCH /api/sections/:id/assign-instructor
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+| Field          | Type   | Required | Rules |
+|----------------|--------|----------|-------|
+| `instructorId` | string | Yes      | Existing instructor profile |
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Section not found"` / `"Instructor not found"` |
+
+## 6. Delete Section (hard, cascading)
+
+```
+DELETE /api/sections/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+Permanently deletes the section; `ON DELETE CASCADE` removes its registrations, attendance, exams, and results. Returns the deleted section row.
+
+> **Warning:** This is destructive and irreversible.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Section not found"` |
+
+## Section Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/sections` | ADMIN, SUPER_ADMIN | Create a section |
+| 2 | GET | `/api/sections` | all roles | List sections (filter + pagination) |
+| 3 | GET | `/api/sections/:id` | all roles | Get a section |
+| 4 | PATCH | `/api/sections/:id` | ADMIN, SUPER_ADMIN | Update a section |
+| 5 | PATCH | `/api/sections/:id/assign-instructor` | ADMIN, SUPER_ADMIN | Assign an instructor |
+| 6 | DELETE | `/api/sections/:id` | ADMIN, SUPER_ADMIN | Hard-delete a section (cascades) |

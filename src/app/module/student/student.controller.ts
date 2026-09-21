@@ -123,6 +123,20 @@ const updateMyProfileImage = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const updateCurrentSemester = catchAsync(
+	async (req: Request, res: Response) => {
+		const id = req.params.id as string;
+		const result = await StudentService.updateCurrentSemester(id, req.body);
+
+		sendResponse(res, {
+			statusCode: httpStatus.OK,
+			success: true,
+			message: "Current semester updated successfully",
+			data: result,
+		});
+	},
+);
+
 const getMyInfo = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as unknown as IRequestUser;
 	const result = await StudentService.getMyInfo(user.userId);
@@ -223,6 +237,7 @@ export const StudentController = {
 	rejectApplication,
 	updateMyProfile,
 	updateMyProfileImage,
+	updateCurrentSemester,
 	getMyInfo,
 	registeredCourses,
 	registeredCourseDetails,

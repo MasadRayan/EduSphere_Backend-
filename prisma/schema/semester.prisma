@@ -7,6 +7,7 @@ model Semester {
   isActive  Boolean  @default(false)
 
   sections Section[]
+  students StudentProfile[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
