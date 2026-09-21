@@ -1,10 +1,6 @@
 import z from "zod";
 
 const StudentApplyZodSchema = z.object({
-	fullName: z
-		.string()
-		.min(3, "Full name must at least 3 characters long")
-		.max(60),
 	phone: z.string().optional(),
 	departmentName: z.string().min(1, "Department is required"),
 	programName: z.string().min(1, "Program is required"),

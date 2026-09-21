@@ -450,9 +450,10 @@ POST /api/student/apply
 
 ### Request Body
 
+`fullName` is taken from the authenticated user's `User.name` (via `req.user`) and is not part of the request body.
+
 | Field             | Type        | Required | Rules |
 |-------------------|-------------|----------|-------|
-| `fullName`        | string      | Yes      | 3–60 characters |
 | `phone`           | string      | No       | —
 | `departmentName`  | string      | Yes      | Must exist in DB |
 | `programName`     | string      | Yes      | Must exist in chosen department |
@@ -462,7 +463,6 @@ POST /api/student/apply
 
 ```json
 {
-  "fullName": "Masad Rayan",
   "phone": "+8801712345678",
   "departmentName": "Computer Science",
   "programName": "B.Sc in Computer Science",
@@ -547,7 +547,6 @@ Same shape as `POST /api/student/apply`.
 
 ```json
 {
-  "fullName": "Masad Hasan Rayan",
   "phone": "+8801712345678",
   "departmentName": "Computer Science",
   "programName": "B.Sc in Software Engineering",

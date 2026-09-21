@@ -32,6 +32,7 @@ export interface IResetPasswordPayload {
 
 export interface IRequestUser {
 	userId: string;
+	name: string;
 	email: string;
 	role: Role;
 }

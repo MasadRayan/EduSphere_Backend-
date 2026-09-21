@@ -1,7 +1,6 @@
 import type { ApplicationStatus } from "../../../generated/prisma/enums";
 
 export interface IStudentApplyPayload {
-	fullName: string;
 	phone?: string;
 	departmentName: string;
 	programName: string;

@@ -9,7 +9,7 @@ import { StudentService } from "./student.service";
 
 const applyForEnrollment = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as unknown as IRequestUser;
-	const result = await StudentService.applyForEnrollment(req.body, user.userId);
+	const result = await StudentService.applyForEnrollment(req.body, user);
 
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
@@ -22,7 +22,7 @@ const applyForEnrollment = catchAsync(async (req: Request, res: Response) => {
 
 const updateApplication = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as unknown as IRequestUser;
-	const result = await StudentService.updateApplication(req.body, user.userId);
+	const result = await StudentService.updateApplication(req.body, user);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,

@@ -14,6 +14,7 @@ import { cloudinary } from "../../lib/cloudinary";
 import { prisma } from "../../lib/prisma";
 import { transporter } from "../../lib/nodemailer";
 import { AppError } from "../../utils/AppError";
+import type { IRequestUser } from "../auth/auth.interface";
 import type {
 	IApproveApplicationPayload,
 	IGetApplicationsQuery,
@@ -142,9 +143,10 @@ const createNotification = async (
 
 const applyForEnrollment = async (
 	payload: IStudentApplyPayload,
-	userId: string,
+	user: IRequestUser,
 ) => {
-	const { fullName, phone, enrollmentYear } = payload;
+	const { userId, name: fullName } = user;
+	const { phone, enrollmentYear } = payload;
 
 	const [existingProfile, existingApplication] = await Promise.all([
 		prisma.studentProfile.findUnique({ where: { userId } }),
@@ -191,8 +193,10 @@ const applyForEnrollment = async (
 
 const updateApplication = async (
 	payload: IStudentApplyPayload,
-	userId: string,
+	user: IRequestUser,
 ) => {
+	const { userId, name: fullName } = user;
+
 	const existingApplication = await prisma.studentApplication.findUnique({
 		where: { userId },
 	});
@@ -211,7 +215,7 @@ const updateApplication = async (
 	const updatedApplication = await prisma.studentApplication.update({
 		where: { id: existingApplication.id },
 		data: {
-			fullName: payload.fullName,
+			fullName,
 			phone: payload.phone,
 			departmentId: department.id,
 			programId: program.id,
