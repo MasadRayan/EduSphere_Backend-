@@ -565,17 +565,26 @@ const updateMyProfileImage = async (buffer: Buffer, userId: string) => {
 	if (studentProfile) {
 		const previousPublicId = studentProfile.avatarPublicId;
 
-		const updatedProfile = await prisma.studentProfile.update({
-			where: { id: studentProfile.id },
-			data: {
-				avatarUrl: cloudinaryResult.secure_url,
-				avatarPublicId: cloudinaryResult.public_id,
-			},
-			include: {
-				department: true,
-				program: true,
-			},
-		});
+		const [updatedProfile] = await prisma.$transaction([
+			prisma.studentProfile.update({
+				where: { id: studentProfile.id },
+				data: {
+					avatarUrl: cloudinaryResult.secure_url,
+					avatarPublicId: cloudinaryResult.public_id,
+				},
+				include: {
+					department: true,
+					program: true,
+				},
+			}),
+			prisma.user.update({
+				where: { id: userId },
+				data: {
+					imageURL: cloudinaryResult.secure_url,
+					imagePublicId: cloudinaryResult.public_id,
+				},
+			}),
+		]);
 
 		if (previousPublicId) {
 			await cloudinary.uploader.destroy(previousPublicId);
@@ -591,13 +600,22 @@ const updateMyProfileImage = async (buffer: Buffer, userId: string) => {
 	) {
 		const previousPublicId = application.avatarPublicId;
 
-		const updatedApplication = await prisma.studentApplication.update({
-			where: { id: application.id },
-			data: {
-				avatarUrl: cloudinaryResult.secure_url,
-				avatarPublicId: cloudinaryResult.public_id,
-			},
-		});
+		const [updatedApplication] = await prisma.$transaction([
+			prisma.studentApplication.update({
+				where: { id: application.id },
+				data: {
+					avatarUrl: cloudinaryResult.secure_url,
+					avatarPublicId: cloudinaryResult.public_id,
+				},
+			}),
+			prisma.user.update({
+				where: { id: userId },
+				data: {
+					imageURL: cloudinaryResult.secure_url,
+					imagePublicId: cloudinaryResult.public_id,
+				},
+			}),
+		]);
 
 		if (previousPublicId) {
 			await cloudinary.uploader.destroy(previousPublicId);
