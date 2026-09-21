@@ -5,7 +5,7 @@ model InstructorApplication {
   phone        String?
 
   departmentId String
-  department   Department        @relation(fields: [departmentId], references: [id])
+  department   Department        @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   designation  String?
   resumeUrl    String?           // Cloudinary

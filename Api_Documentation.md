@@ -1633,7 +1633,7 @@ PATCH /api/student/applications/:id/reject
 
 # EduSphere — Department Module API Documentation
 
-Departments are the top level of the academic hierarchy (`Department → Program → Course`). All routes require an `ADMIN` or `SUPER_ADMIN` token. Deletes are soft deletes (`isDeleted: true`, `deletedAt` set); soft-deleted departments are excluded from list/get results.
+Departments are the top level of the academic hierarchy (`Department → Program → Course`). All routes require an `ADMIN` or `SUPER_ADMIN` token. Deletes are **hard deletes** with `ON DELETE CASCADE`: deleting a department permanently removes all of its programs, courses, sections, registrations, attendance, exams, results, student profiles, instructor profiles, and applications.
 
 Both `name` and `code` are globally unique.
 
@@ -1801,7 +1801,7 @@ Same shape as the create response `data`.
 
 ---
 
-## 5. Delete Department (soft)
+## 5. Delete Department (hard, cascading)
 
 ```
 DELETE /api/departments/:id
@@ -1813,7 +1813,9 @@ DELETE /api/departments/:id
 
 ### Response (200 OK)
 
-Returns the updated department row with `isDeleted: true` and `deletedAt` set.
+Permanently deletes the department and, via `ON DELETE CASCADE`, every dependent record (programs, courses, sections, registrations, attendance, exams, results, student profiles, instructor profiles, and applications). Returns the deleted department row.
+
+> **Warning:** This is destructive and irreversible. Prefer deleting empty departments or reassigning members first.
 
 ### Error Responses
 
@@ -1831,13 +1833,13 @@ Returns the updated department row with `isDeleted: true` and `deletedAt` set.
 | 2 | GET | `/api/departments` | ADMIN, SUPER_ADMIN | List departments (search + pagination) |
 | 3 | GET | `/api/departments/:id` | ADMIN, SUPER_ADMIN | Get a department |
 | 4 | PATCH | `/api/departments/:id` | ADMIN, SUPER_ADMIN | Update a department |
-| 5 | DELETE | `/api/departments/:id` | ADMIN, SUPER_ADMIN | Soft-delete a department |
+| 5 | DELETE | `/api/departments/:id` | ADMIN, SUPER_ADMIN | Hard-delete a department (cascades) |
 
 ---
 
 # EduSphere — Program Module API Documentation
 
-Programs belong to a department (`Program.departmentId`). All routes require an `ADMIN` or `SUPER_ADMIN` token. Deletes are soft deletes.
+Programs belong to a department (`Program.departmentId`). All routes require an `ADMIN` or `SUPER_ADMIN` token. Deletes are **hard deletes** with `ON DELETE CASCADE`: deleting a program permanently removes its student profiles and student applications.
 
 `(name, departmentId)` is unique.
 
@@ -1993,7 +1995,7 @@ Same shape as the create response `data`.
 
 ---
 
-## 5. Delete Program (soft)
+## 5. Delete Program (hard, cascading)
 
 ```
 DELETE /api/programs/:id
@@ -2005,7 +2007,9 @@ DELETE /api/programs/:id
 
 ### Response (200 OK)
 
-Returns the updated program row with `isDeleted: true` and `deletedAt` set.
+Permanently deletes the program and, via `ON DELETE CASCADE`, its student profiles and student applications. Returns the deleted program row (with its department).
+
+> **Warning:** This is destructive and irreversible.
 
 ### Error Responses
 
@@ -2023,4 +2027,4 @@ Returns the updated program row with `isDeleted: true` and `deletedAt` set.
 | 2 | GET | `/api/programs` | ADMIN, SUPER_ADMIN | List programs (filter + search + pagination) |
 | 3 | GET | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Get a program |
 | 4 | PATCH | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Update a program |
-| 5 | DELETE | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Soft-delete a program |
+| 5 | DELETE | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Hard-delete a program (cascades) |

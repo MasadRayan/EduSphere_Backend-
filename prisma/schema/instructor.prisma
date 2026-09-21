@@ -9,7 +9,7 @@ model InstructorProfile {
   designation String?
 
   departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   sections Section[]
 

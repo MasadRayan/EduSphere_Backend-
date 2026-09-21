@@ -5,7 +5,7 @@ model Program {
   totalCredits Int
 
   departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   students StudentProfile[]
   studentApplications StudentApplication[]

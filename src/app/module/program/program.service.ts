@@ -136,14 +136,17 @@ const updateProgram = async (id: string, payload: IUpdateProgramPayload) => {
 };
 
 const deleteProgram = async (id: string) => {
-	await getProgramById(id);
-
-	return prisma.program.update({
+	const program = await prisma.program.findUnique({
 		where: { id },
-		data: {
-			isDeleted: true,
-			deletedAt: new Date(),
-		},
+		include: { department: true },
+	});
+
+	if (!program) {
+		throw new AppError(httpStatus.NOT_FOUND, "Program not found");
+	}
+
+	return prisma.program.delete({
+		where: { id },
 		include: { department: true },
 	});
 };

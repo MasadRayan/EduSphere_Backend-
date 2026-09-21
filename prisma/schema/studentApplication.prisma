@@ -9,10 +9,10 @@ model StudentApplication {
   avatarPublicId String?
 
   departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
 
   programId String
-  program   Program @relation(fields: [programId], references: [id])
+  program   Program @relation(fields: [programId], references: [id], onDelete: Cascade)
 
   enrollmentYear Int
 

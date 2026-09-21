@@ -2,10 +2,10 @@ model Attendance {
   id String @id @default(uuid())
 
   studentId String
-  student   StudentProfile @relation(fields: [studentId], references: [id])
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   sectionId String
-  section   Section @relation(fields: [sectionId], references: [id])
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   date   DateTime
   status AttendanceStatus

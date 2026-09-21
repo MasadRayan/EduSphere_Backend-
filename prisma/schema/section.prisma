@@ -3,7 +3,7 @@ model Section {
   sectionCode String // e.g. "A", "B"
 
   courseId String
-  course   Course @relation(fields: [courseId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   semesterId String
   semester   Semester @relation(fields: [semesterId], references: [id])

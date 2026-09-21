@@ -2,7 +2,7 @@ model Exam {
   id String @id @default(uuid())
 
   sectionId String
-  section   Section @relation(fields: [sectionId], references: [id])
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   type       ExamType
   date       DateTime

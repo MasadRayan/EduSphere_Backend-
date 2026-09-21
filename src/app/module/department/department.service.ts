@@ -121,15 +121,13 @@ const updateDepartment = async (
 };
 
 const deleteDepartment = async (id: string) => {
-	await getDepartmentById(id);
+	const department = await prisma.department.findUnique({ where: { id } });
 
-	return prisma.department.update({
-		where: { id },
-		data: {
-			isDeleted: true,
-			deletedAt: new Date(),
-		},
-	});
+	if (!department) {
+		throw new AppError(httpStatus.NOT_FOUND, "Department not found");
+	}
+
+	return prisma.department.delete({ where: { id } });
 };
 
 export const DepartmentService = {

@@ -2,10 +2,10 @@ model Result {
   id String @id @default(uuid())
 
   examId String
-  exam   Exam @relation(fields: [examId], references: [id])
+  exam   Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
 
   studentId String
-  student   StudentProfile @relation(fields: [studentId], references: [id])
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   marksObtained Float
   grade         String? // computed: A, A-, B+, etc.
