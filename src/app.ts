@@ -10,6 +10,8 @@ import config from "./app/config";
 import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
+import { DepartmentRoutes } from "./app/module/department/department.route";
+import { ProgramRoutes } from "./app/module/program/program.route";
 import { StudentRoutes } from "./app/module/student/student.route";
 
 const app: Application = express();
@@ -29,6 +31,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use("/api/auth", AuthRoutes);
+app.use("/api/departments", DepartmentRoutes);
+app.use("/api/programs", ProgramRoutes);
 app.use("/api/student", StudentRoutes);
 
 // Basic route

@@ -1628,3 +1628,399 @@ PATCH /api/student/applications/:id/reject
 | 13 | GET | `/api/student/applications` | ADMIN, SUPER_ADMIN | List all applications |
 | 14 | PATCH | `/api/student/applications/:id/approve` | ADMIN, SUPER_ADMIN | Approve application |
 | 15 | PATCH | `/api/student/applications/:id/reject` | ADMIN, SUPER_ADMIN | Reject application |
+
+---
+
+# EduSphere — Department Module API Documentation
+
+Departments are the top level of the academic hierarchy (`Department → Program → Course`). All routes require an `ADMIN` or `SUPER_ADMIN` token. Deletes are soft deletes (`isDeleted: true`, `deletedAt` set); soft-deleted departments are excluded from list/get results.
+
+Both `name` and `code` are globally unique.
+
+## 1. Create Department
+
+```
+POST /api/departments
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+| Field  | Type   | Required | Rules |
+|--------|--------|----------|-------|
+| `name` | string | Yes      | 2–100 characters, unique |
+| `code` | string | Yes      | 2–20 characters, unique |
+
+### Demo Input
+
+```json
+{
+  "name": "Computer Science",
+  "code": "CSE"
+}
+```
+
+### Response (201 Created)
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Department created successfully",
+  "data": {
+    "id": "11111111-2222-3333-4444-555555555555",
+    "name": "Computer Science",
+    "code": "CSE",
+    "isDeleted": false,
+    "deletedAt": null,
+    "createdAt": "2026-01-01T09:00:00.000Z",
+    "updatedAt": "2026-01-01T09:00:00.000Z"
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 409 | `"Department with this name already exists"` |
+| 409 | `"Department with this code already exists"` |
+| 400 | Validation error (invalid body shape) |
+
+---
+
+## 2. List Departments
+
+```
+GET /api/departments?searchTerm=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Query Parameters
+
+| Param        | Type   | Required | Default | Rules |
+|--------------|--------|----------|---------|-------|
+| `searchTerm` | string | No       | —       | Case-insensitive match on `name` or `code` |
+| `page`       | number | No       | `1`     | ≥ 1 |
+| `limit`      | number | No       | `10`    | 1–100 |
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Departments fetched successfully",
+  "data": [
+    {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "name": "Computer Science",
+      "code": "CSE",
+      "isDeleted": false,
+      "deletedAt": null,
+      "createdAt": "2026-01-01T09:00:00.000Z",
+      "updatedAt": "2026-01-01T09:00:00.000Z"
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1
+  }
+}
+```
+
+---
+
+## 3. Get Department by ID
+
+```
+GET /api/departments/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+Same shape as the create response `data`.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Department not found"` |
+
+---
+
+## 4. Update Department
+
+```
+PATCH /api/departments/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+At least one field. Same rules as create.
+
+| Field  | Type   | Required |
+|--------|--------|----------|
+| `name` | string | No       |
+| `code` | string | No       |
+
+### Demo Input
+
+```json
+{
+  "name": "Computer Science & Engineering"
+}
+```
+
+### Response (200 OK)
+
+Same shape as the create response `data`.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Department not found"` |
+| 409 | `"Department with this name already exists"` / `"Department with this code already exists"` |
+
+---
+
+## 5. Delete Department (soft)
+
+```
+DELETE /api/departments/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+Returns the updated department row with `isDeleted: true` and `deletedAt` set.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Department not found"` |
+
+---
+
+## Department Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/departments` | ADMIN, SUPER_ADMIN | Create a department |
+| 2 | GET | `/api/departments` | ADMIN, SUPER_ADMIN | List departments (search + pagination) |
+| 3 | GET | `/api/departments/:id` | ADMIN, SUPER_ADMIN | Get a department |
+| 4 | PATCH | `/api/departments/:id` | ADMIN, SUPER_ADMIN | Update a department |
+| 5 | DELETE | `/api/departments/:id` | ADMIN, SUPER_ADMIN | Soft-delete a department |
+
+---
+
+# EduSphere — Program Module API Documentation
+
+Programs belong to a department (`Program.departmentId`). All routes require an `ADMIN` or `SUPER_ADMIN` token. Deletes are soft deletes.
+
+`(name, departmentId)` is unique.
+
+## 1. Create Program
+
+```
+POST /api/programs
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+| Field          | Type   | Required | Rules |
+|----------------|--------|----------|-------|
+| `name`         | string | Yes      | 2–100 characters, unique within the department |
+| `degreeType`   | string | Yes      | 2–50 characters (e.g. `"Bachelor's"`) |
+| `totalCredits` | number | Yes      | Integer, > 0 |
+| `departmentId` | string | Yes      | Must reference an existing, non-deleted department |
+
+### Demo Input
+
+```json
+{
+  "name": "B.Sc in Computer Science",
+  "degreeType": "Bachelor's",
+  "totalCredits": 140,
+  "departmentId": "11111111-2222-3333-4444-555555555555"
+}
+```
+
+### Response (201 Created)
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Program created successfully",
+  "data": {
+    "id": "66666666-7777-8888-9999-000000000000",
+    "name": "B.Sc in Computer Science",
+    "degreeType": "Bachelor's",
+    "totalCredits": 140,
+    "departmentId": "11111111-2222-3333-4444-555555555555",
+    "isDeleted": false,
+    "deletedAt": null,
+    "createdAt": "2026-01-01T09:00:00.000Z",
+    "updatedAt": "2026-01-01T09:00:00.000Z",
+    "department": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "name": "Computer Science",
+      "code": "CSE",
+      "isDeleted": false,
+      "deletedAt": null,
+      "createdAt": "2026-01-01T09:00:00.000Z",
+      "updatedAt": "2026-01-01T09:00:00.000Z"
+    }
+  }
+}
+```
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Department not found"` |
+| 409 | `"Program with this name already exists in this department"` |
+| 400 | Validation error (invalid body shape) |
+
+---
+
+## 2. List Programs
+
+```
+GET /api/programs?departmentId=&searchTerm=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Query Parameters
+
+| Param          | Type   | Required | Default | Rules |
+|----------------|--------|----------|---------|-------|
+| `departmentId` | string | No       | —       | Filter by department |
+| `searchTerm`   | string | No       | —       | Case-insensitive match on `name` or `degreeType` |
+| `page`         | number | No       | `1`     | ≥ 1 |
+| `limit`        | number | No       | `10`    | 1–100 |
+
+### Response (200 OK)
+
+`data` is an array of programs (each includes `department`); `meta` matches the Department list shape.
+
+---
+
+## 3. Get Program by ID
+
+```
+GET /api/programs/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+Same shape as the create response `data`.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Program not found"` |
+
+---
+
+## 4. Update Program
+
+```
+PATCH /api/programs/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+Any subset of the create fields, same rules.
+
+### Demo Input
+
+```json
+{
+  "totalCredits": 144
+}
+```
+
+### Response (200 OK)
+
+Same shape as the create response `data`.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Program not found"` / `"Department not found"` |
+| 409 | `"Program with this name already exists in this department"` |
+
+---
+
+## 5. Delete Program (soft)
+
+```
+DELETE /api/programs/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+Returns the updated program row with `isDeleted: true` and `deletedAt` set.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Program not found"` |
+
+---
+
+## Program Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/programs` | ADMIN, SUPER_ADMIN | Create a program |
+| 2 | GET | `/api/programs` | ADMIN, SUPER_ADMIN | List programs (filter + search + pagination) |
+| 3 | GET | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Get a program |
+| 4 | PATCH | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Update a program |
+| 5 | DELETE | `/api/programs/:id` | ADMIN, SUPER_ADMIN | Soft-delete a program |
