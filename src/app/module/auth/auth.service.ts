@@ -32,6 +32,7 @@ const getSaltRounds = () => Number(config.bcrypt_salt_rounds) || 10;
 const registerStudent = async (payload: IRegisterStudentPayload) => {
 	const { name, password } = payload;
 	const email = payload.email.trim().toLowerCase();
+	const role = payload.role ?? "STUDENT";
 
 	const isUserExists = await prisma.user.findUnique({
 		where: { email },
@@ -63,6 +64,7 @@ const registerStudent = async (payload: IRegisterStudentPayload) => {
 		name,
 		email,
 		password: hashedPassword,
+		role,
 	};
 
 	await redisClient.set(registrationKey, JSON.stringify(redisUserDataPayload), {
@@ -136,12 +138,15 @@ const verifyStudentEmail = async (payload: IVerifyEmailPayload) => {
 
 	const studentPayload: IRegisterStudentPayload = JSON.parse(redisStudentData);
 
+	const role =
+		studentPayload.role === "INSTRUCTOR" ? Role.INSTRUCTOR : Role.STUDENT;
+
 	const createdUser = await prisma.user.create({
 		data: {
 			name: studentPayload.name,
 			email: studentPayload.email,
 			password: studentPayload.password,
-			role: Role.STUDENT,
+			role,
 			status: UserStatus.ACTIVE,
 			emailVerified: true,
 		},
@@ -151,9 +156,15 @@ const verifyStudentEmail = async (payload: IVerifyEmailPayload) => {
 
 	await redisClient.del(registrationKey);
 
+	const welcomeTemplate =
+		role === Role.INSTRUCTOR
+			? "instructor-welcome-email.ejs"
+			: "student-welcome-email.ejs";
+
 	const templatePath = path.join(
 		process.cwd(),
-		"src/app/templates/student-welcome-email.ejs",
+		"src/app/templates",
+		welcomeTemplate,
 	);
 
 	const html = await ejs.renderFile(templatePath, {

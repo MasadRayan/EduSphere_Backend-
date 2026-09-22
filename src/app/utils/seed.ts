@@ -134,6 +134,7 @@ export const seedTeacher = async () => {
 					data: {
 						userId: existingTeacher.id,
 						fullName: existingTeacher.name,
+						instructorId: "INS-2026-0001",
 						departmentId: department.id,
 						designation: "Lecturer",
 					},
@@ -163,6 +164,7 @@ export const seedTeacher = async () => {
 				instructorProfile: {
 					create: {
 						fullName: name,
+						instructorId: "INS-2026-0001",
 						departmentId: department.id,
 						designation: "Lecturer",
 					},

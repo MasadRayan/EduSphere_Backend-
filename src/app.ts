@@ -14,6 +14,7 @@ import { CourseRoutes } from "./app/module/course/course.route";
 import { CourseRegistrationRoutes } from "./app/module/courseRegistration/courseRegistration.route";
 import { CourseSectionRoutes } from "./app/module/courseSection/courseSection.route";
 import { DepartmentRoutes } from "./app/module/department/department.route";
+import { InstructorRoutes } from "./app/module/instructor/instructor.route";
 import { ProgramRoutes } from "./app/module/program/program.route";
 import { SemesterRoutes } from "./app/module/semester/semester.route";
 import { StudentRoutes } from "./app/module/student/student.route";
@@ -44,6 +45,7 @@ app.use("/api/course-sections", CourseSectionRoutes);
 app.use("/api/course-registrations", CourseRegistrationRoutes);
 app.use("/api/student-sections", StudentSectionRoutes);
 app.use("/api/student", StudentRoutes);
+app.use("/api/instructor", InstructorRoutes);
 
 // Basic route
 app.get("/", async (req: Request, res: Response) => {

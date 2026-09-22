@@ -1,5 +1,8 @@
 model InstructorApplication {
   id           String            @id @default(uuid())
+  userId       String            @unique
+  user         User              @relation(fields: [userId], references: [id])
+
   name         String
   email        String            @unique
   phone        String?
@@ -10,6 +13,9 @@ model InstructorApplication {
   designation  String?
   resumeUrl    String?           // Cloudinary
   coverNote    String?
+
+  avatarUrl      String?
+  avatarPublicId String?
 
   status       ApplicationStatus @default(PENDING)
   reviewedById String?           // admin userId who reviewed

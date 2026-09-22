@@ -43,6 +43,42 @@ export const upload = multer({
 	fileFilter,
 });
 
+const RESUME_ALLOWED_MIME_TYPES = [
+	"application/pdf",
+	"application/msword",
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+const resumeFileFilter = (
+	_req: Request,
+	file: Express.Multer.File,
+	cb: FileFilterCallback,
+) => {
+	if (
+		RESUME_ALLOWED_MIME_TYPES.includes(file.mimetype) ||
+		file.mimetype.startsWith("image/") ||
+		file.mimetype.startsWith("application/vnd.oasis.opendocument") ||
+		DEFERRED_MIME_TYPES.includes(file.mimetype)
+	) {
+		cb(null, true);
+	} else {
+		cb(
+			new AppError(
+				httpStatus.BAD_REQUEST,
+				"Only PDF, DOC, DOCX, or image files are allowed",
+			),
+		);
+	}
+};
+
+export const resumeUpload = multer({
+	storage,
+	limits: {
+		fileSize: 5 * 1024 * 1024, // 5 MB
+	},
+	fileFilter: resumeFileFilter,
+});
+
 export const handleMulterErrors = (
 	err: unknown,
 	_req: Request,

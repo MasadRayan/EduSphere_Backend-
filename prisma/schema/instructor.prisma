@@ -4,6 +4,7 @@ model InstructorProfile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   fullName    String
+  instructorId String? @unique
   phone       String?
   avatarUrl   String? // Cloudinary URL
   designation String?

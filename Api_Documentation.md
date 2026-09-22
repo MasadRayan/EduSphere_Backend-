@@ -2849,3 +2849,207 @@ Permanently deletes the section. Blocked while any student is assigned (their `s
 | 3 | GET | `/api/student-sections/:id` | all roles | Get a student section |
 | 4 | PATCH | `/api/student-sections/:id` | ADMIN, SUPER_ADMIN | Update code/capacity |
 | 5 | DELETE | `/api/student-sections/:id` | ADMIN, SUPER_ADMIN | Hard-delete (blocked if students assigned) |
+
+---
+
+# Instructor Module
+
+Instructors register with the `INSTRUCTOR` role (see **Register Student**, which now accepts an optional `role: "INSTRUCTOR"`), submit an application, and an admin/superadmin approves or rejects it. Approval creates the `InstructorProfile` (**assignment**: department + designation) and auto-generates a unique staff code (`INS-{year}-{seq:04d}`). Assigning course sections to teach is handled separately via `PATCH /api/course-sections/:id/assign-instructor`.
+
+## 0. Register Instructor
+
+```
+POST /api/auth/register
+```
+
+Same flow as student registration; body gains an optional `role`.
+
+### Demo Input
+
+```json
+{
+  "name": "Rahim Uddin",
+  "email": "rahim@example.com",
+  "password": "Pass@1234",
+  "role": "INSTRUCTOR"
+}
+```
+
+After verifying the OTP (`POST /api/auth/verify-email`) the account is created with role `INSTRUCTOR`.
+
+## 1. Apply as Instructor
+
+```
+POST /api/instructor/apply
+```
+
+### Auth & Roles
+
+`INSTRUCTOR`
+
+### Request Body
+
+| Field            | Type   | Required | Notes |
+|------------------|--------|----------|-------|
+| `departmentName` | string | Yes      | Existing department name |
+| `phone`          | string | No       | Contact phone |
+| `designation`    | string | No       | e.g. `"Lecturer"` |
+| `coverNote`      | string | No       | Short message to reviewers |
+
+`name`/`email` are taken from the authenticated user. One application per user.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 409 | `"Application already submitted. You can update and resubmit it."` |
+| 409 | `"You are already an approved instructor"` |
+| 404 | `"Department not found"` |
+
+## 2. Update / Resubmit Application
+
+```
+PUT /api/instructor/apply
+```
+
+Same schema as apply. Allowed while the application is `PENDING` or `REJECTED`; resets it to `PENDING`. Blocked when already `APPROVED`.
+
+## 3. Get My Application
+
+```
+GET /api/instructor/application
+```
+
+Returns the authenticated instructor's application with department + user. `data` is `null` if none exists.
+
+## 4. Upload Resume
+
+```
+POST /api/instructor/resume
+```
+
+Multipart field `resume` (PDF / DOC / DOCX / image, ≤ 5 MB). Uploaded to Cloudinary and stored as `resumeUrl`. Blocked once the application is `APPROVED`. File size 5 MB max.
+
+## 5. Get My Info
+
+```
+GET /api/instructor/me
+```
+
+Returns the user with `instructorProfile` (department + assigned course sections) and `instructorApplication`.
+
+## 6. Update My Profile
+
+```
+PATCH /api/instructor/profile
+```
+
+Body: `fullName?`, `phone?`. Updating `fullName` also updates the user's name.
+
+## 7. Upload Profile Image
+
+```
+PATCH /api/instructor/avatar
+```
+
+Multipart field `avatar` (image ≤ 5 MB). Pre-approval the image is stored on the application; after approval it goes on the `InstructorProfile`.
+
+## 8. List All Applications (Admin)
+
+```
+GET /api/instructor/applications?status=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+`status` optional: `PENDING` | `APPROVED` | `REJECTED`.
+
+## 9. Approve Application (Admin) — Assignment
+
+```
+PATCH /api/instructor/applications/:id/approve
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Request Body
+
+| Field          | Type   | Required | Notes |
+|----------------|--------|----------|-------|
+| `reviewNote`   | string | No       | Recorded note |
+| `designation`  | string | No       | Overrides the application designation |
+| `departmentId` | string | No       | Overrides the application department |
+
+Creates the `InstructorProfile` (generates `instructorId` like `INS-2026-0001`, assigns department + designation), marks the application `APPROVED` with the reviewer, and emails a welcome message. Only `PENDING` applications can be approved.
+
+## 10. Reject Application (Admin)
+
+```
+PATCH /api/instructor/applications/:id/reject
+```
+
+Body: `reviewNote?`. Marks the application `REJECTED` and emails the applicant. Only `PENDING` applications can be rejected.
+
+## 11. List Instructors (Admin)
+
+```
+GET /api/instructor?page=&limit=&searchTerm=&departmentId=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`
+
+Paginated. `searchTerm` matches name / INS code / user email; `departmentId` filters by department. Each row includes `_count.courseSections`.
+
+## 12. Get Instructor by ID
+
+```
+GET /api/instructor/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`, `INSTRUCTOR`
+
+Includes the instructor's department and assigned course sections.
+
+## 13. Update Instructor (Admin)
+
+```
+PATCH /api/instructor/:id
+```
+
+Body: any of `fullName?`, `phone?`, `designation?`, `departmentId?`. Updating `fullName` syncs the user's name.
+
+## 14. Delete Instructor (Admin)
+
+```
+DELETE /api/instructor/:id
+```
+
+Soft-deletes the instructor (`isDeleted`, `deletedAt`) and unassigns their course sections (`instructorId` → `NULL`).
+
+## Instructor Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/auth/register` | public | Register with optional `role: "INSTRUCTOR"` |
+| 2 | POST | `/api/instructor/apply` | INSTRUCTOR | Submit instructor application |
+| 3 | PUT | `/api/instructor/apply` | INSTRUCTOR | Update/resubmit application |
+| 4 | GET | `/api/instructor/application` | INSTRUCTOR | Get my application |
+| 5 | POST | `/api/instructor/resume` | INSTRUCTOR | Upload resume (PDF/doc/image) |
+| 6 | GET | `/api/instructor/me` | INSTRUCTOR | Get my info + sections |
+| 7 | PATCH | `/api/instructor/profile` | INSTRUCTOR | Update my profile |
+| 8 | PATCH | `/api/instructor/avatar` | INSTRUCTOR | Upload profile image |
+| 9 | GET | `/api/instructor/applications` | ADMIN, SUPER_ADMIN | List applications |
+| 10 | PATCH | `/api/instructor/applications/:id/approve` | ADMIN, SUPER_ADMIN | Approve + assign instructor |
+| 11 | PATCH | `/api/instructor/applications/:id/reject` | ADMIN, SUPER_ADMIN | Reject application |
+| 12 | GET | `/api/instructor` | ADMIN, SUPER_ADMIN, INSTRUCTOR | List instructors |
+| 13 | GET | `/api/instructor/:id` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Get instructor by ID |
+| 14 | PATCH | `/api/instructor/:id` | ADMIN, SUPER_ADMIN | Update instructor |
+| 15 | DELETE | `/api/instructor/:id` | ADMIN, SUPER_ADMIN | Soft-delete instructor |

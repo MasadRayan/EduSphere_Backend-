@@ -23,6 +23,7 @@ model User {
   studentProfile    StudentProfile?
   studentApplication StudentApplication?
   instructorProfile InstructorProfile?
+  instructorApplication InstructorApplication?
   payments          Payment[]
   auditLogs         AuditLog[]
   notifications     Notification[]
