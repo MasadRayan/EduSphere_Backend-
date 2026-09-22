@@ -93,12 +93,14 @@ const loadCourses = async (courseIds: string[]) => {
 const ensureCourseOpenSection = async (
 	studentId: string,
 	courseId: string,
+	courseCode: string,
 	semesterId: string,
 ) => {
 	const sections = await prisma.courseSection.findMany({
 		where: {
 			courseId,
 			semesterId,
+
 			isDeleted: false,
 		},
 		orderBy: { createdAt: "asc" },
@@ -107,7 +109,7 @@ const ensureCourseOpenSection = async (
 	if (!sections.length) {
 		throw new AppError(
 			httpStatus.NOT_FOUND,
-			"No course section exists for this course in the current semester",
+			`No course section exists for ${courseCode} in the current semester. Contact the registrar office.`,
 		);
 	}
 
@@ -151,7 +153,7 @@ const ensureCourseOpenSection = async (
 	if (!openSection) {
 		throw new AppError(
 			httpStatus.CONFLICT,
-			"No open section is available for this course in the current semester",
+			`No open seat is available in any section of ${courseCode} in the current semester`,
 		);
 	}
 
@@ -223,6 +225,7 @@ const enrollSemester = async (
 		const section = await ensureCourseOpenSection(
 			student.id,
 			course.id,
+			course.code,
 			semester.id,
 		);
 		sections.push({
