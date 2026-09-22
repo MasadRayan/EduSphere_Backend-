@@ -21,8 +21,8 @@ model Payment {
   refundTrxId           String?
   refundedAt            DateTime?
 
-  courseRegistrationId String? @unique
-  courseRegistration   CourseRegistration? @relation(fields: [courseRegistrationId], references: [id], onDelete: SetNull)
+  semesterEnrollmentId String? @unique
+  semesterEnrollment   SemesterEnrollment? @relation(fields: [semesterEnrollmentId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

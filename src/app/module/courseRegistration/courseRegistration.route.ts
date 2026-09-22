@@ -10,32 +10,29 @@ const router = Router();
 router.post(
 	"/enroll",
 	auth(Role.STUDENT),
-	validateRequest(CourseRegistrationValidation.CreateRegistrationZodSchema),
-	CourseRegistrationController.enrollCourse,
+	validateRequest(CourseRegistrationValidation.CreateEnrollmentZodSchema),
+	CourseRegistrationController.enrollSemester,
 );
-router.get(
-	"/bkash/callback",
-	CourseRegistrationController.handlePaymentCallback,
-);
+router.get("/bkash/callback", CourseRegistrationController.handlePaymentCallback);
 router.get(
 	"/my",
 	auth(Role.STUDENT),
-	CourseRegistrationController.getMyRegistrations,
+	CourseRegistrationController.getMyEnrollments,
 );
 router.get(
 	"/",
 	auth(Role.ADMIN, Role.SUPER_ADMIN),
-	CourseRegistrationController.getAllRegistrations,
+	CourseRegistrationController.getAllEnrollments,
 );
 router.get(
 	"/:id",
 	auth(Role.STUDENT, Role.ADMIN, Role.SUPER_ADMIN),
-	CourseRegistrationController.getRegistrationById,
+	CourseRegistrationController.getEnrollmentById,
 );
 router.patch(
 	"/:id/cancel",
 	auth(Role.STUDENT, Role.ADMIN, Role.SUPER_ADMIN),
-	CourseRegistrationController.cancelRegistration,
+	CourseRegistrationController.cancelEnrollment,
 );
 
 export const CourseRegistrationRoutes = router;

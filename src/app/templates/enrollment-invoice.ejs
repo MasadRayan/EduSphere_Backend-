@@ -3,21 +3,42 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registration Invoice - EduSphere</title>
+  <title>Enrollment Invoice - EduSphere</title>
 </head>
 <body style="margin:0;padding:0;background-color:#0a1120;font-family:Helvetica,Arial,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:32px 24px;">
     <div style="background:#fffcf7;border-radius:20px;padding:36px 32px;border:1px solid rgba(212,168,83,0.28);">
-      <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#17355e;font-weight:700;opacity:0.7;margin-bottom:12px;">EduSphere · Registration Invoice</div>
+      <div style="font-size:12px;letter-spacing:0.18em;text-transform:uppercase;color:#17355e;font-weight:700;opacity:0.7;margin-bottom:12px;">EduSphere · Semester Enrollment Invoice</div>
       <p style="font-size:14px;line-height:22px;color:#4b5563;">
         Dear <strong><%= studentName %></strong>,
       </p>
       <p style="font-size:14px;line-height:22px;color:#4b5563;">
-        Your enrollment for <strong><%= courseCode %> - <%= courseTitle %></strong>
-        (Section <%= sectionCode %>, <%= semesterName %> <%= year %>) has been confirmed.
+        Your enrollment for <strong><%= semesterName %> <%= year %></strong> has been confirmed.
         A PDF copy of the invoice is attached to this email.
       </p>
       <table style="width:100%;margin-top:16px;border-collapse:collapse;font-size:13px;color:#4b5563;">
+        <thead>
+          <tr style="color:#17355e;font-weight:700;">
+            <th style="padding:8px 0;border-bottom:2px solid #eee;text-align:left;">Course</th>
+            <th style="padding:8px 0;border-bottom:2px solid #eee;text-align:center;">Credits</th>
+            <th style="padding:8px 0;border-bottom:2px solid #eee;text-align:right;">Fee</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% courses.forEach(function(c){ %>
+            <tr>
+              <td style="padding:8px 0;border-bottom:1px solid #eee;"><%= c.courseCode %> - <%= c.courseTitle %> (<%= c.sectionCode %>)</td>
+              <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:center;"><%= c.creditHours %></td>
+              <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;">BDT <%= c.fee.toFixed(2) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+      <table style="width:100%;margin-top:16px;border-collapse:collapse;font-size:13px;color:#4b5563;">
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #eee;">Total Credits</td>
+          <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;font-weight:600;color:#0a1120;"><%= totalCredits %></td>
+        </tr>
         <tr>
           <td style="padding:8px 0;border-bottom:1px solid #eee;">Invoice Number</td>
           <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;font-weight:600;color:#0a1120;"><%= invoiceNumber %></td>

@@ -7,10 +7,11 @@ model CourseRegistration {
   courseSectionId String
   courseSection   CourseSection @relation(fields: [courseSectionId], references: [id], onDelete: Cascade)
 
+  semesterEnrollmentId String?
+  semesterEnrollment   SemesterEnrollment? @relation(fields: [semesterEnrollmentId], references: [id], onDelete: Cascade)
+
   status       RegistrationStatus @default(PENDING)
   registeredAt DateTime           @default(now())
-
-  payment Payment?
 
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
@@ -18,5 +19,6 @@ model CourseRegistration {
   @@unique([studentId, courseSectionId])
   @@index([courseSectionId])
   @@index([studentId])
+  @@index([semesterEnrollmentId])
   @@map("course_registrations")
 }

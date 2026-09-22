@@ -1,0 +1,33 @@
+enum EnrollmentStatus {
+  PENDING
+  ENROLLED
+  CANCELLED
+}
+
+model SemesterEnrollment {
+  id String @id @default(uuid())
+
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  semesterId String
+  semester   Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+
+  totalCredits Int
+  totalFee     Float
+
+  status EnrollmentStatus @default(PENDING)
+
+  payment       Payment?
+  registrations CourseRegistration[]
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, semesterId])
+  @@index([semesterId])
+  @@map("semester_enrollments")
+}

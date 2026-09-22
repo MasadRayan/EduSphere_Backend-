@@ -1,9 +1,12 @@
 import z from "zod";
 
-const CreateRegistrationZodSchema = z.object({
-	courseSectionId: z.string().min(1, "Course section is required"),
+const CreateEnrollmentZodSchema = z.object({
+	courseIds: z
+		.array(z.string().min(1, "Course is required"))
+		.min(1, "Select at least one course")
+		.max(20, "Too many courses"),
 });
 
 export const CourseRegistrationValidation = {
-	CreateRegistrationZodSchema,
+	CreateEnrollmentZodSchema,
 };

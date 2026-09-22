@@ -5,9 +5,9 @@ import { sendResponse } from "../../utils/sendResponse";
 import type { IRegistrationQuery } from "./courseRegistration.interface";
 import { CourseRegistrationService } from "./courseRegistration.service";
 
-const enrollCourse = catchAsync(async (req: Request, res: Response) => {
+const enrollSemester = catchAsync(async (req: Request, res: Response) => {
 	const userId = req.user!.userId;
-	const result = await CourseRegistrationService.enrollCourse(
+	const result = await CourseRegistrationService.enrollSemester(
 		userId,
 		req.body,
 	);
@@ -15,7 +15,8 @@ const enrollCourse = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.CREATED,
 		success: true,
-		message: "Enrollment initiated. Please complete payment via bKash.",
+		message:
+			"Enrollment initiated for the semester. Please complete payment via bKash.",
 		data: result,
 	});
 });
@@ -28,8 +29,8 @@ const handlePaymentCallback = catchAsync(async (req: Request, res: Response) => 
 	res.redirect(result.redirectUrl);
 });
 
-const getMyRegistrations = catchAsync(async (req: Request, res: Response) => {
-	const result = await CourseRegistrationService.getMyRegistrations(
+const getMyEnrollments = catchAsync(async (req: Request, res: Response) => {
+	const result = await CourseRegistrationService.getMyEnrollments(
 		req.user!.userId,
 		req.query as unknown as IRegistrationQuery,
 	);
@@ -37,28 +38,28 @@ const getMyRegistrations = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Registrations fetched successfully",
+		message: "Enrollments fetched successfully",
 		data: result.data,
 		meta: result.meta,
 	});
 });
 
-const getAllRegistrations = catchAsync(async (req: Request, res: Response) => {
-	const result = await CourseRegistrationService.getAllRegistrations(
+const getAllEnrollments = catchAsync(async (req: Request, res: Response) => {
+	const result = await CourseRegistrationService.getAllEnrollments(
 		req.query as unknown as IRegistrationQuery,
 	);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Registrations fetched successfully",
+		message: "Enrollments fetched successfully",
 		data: result.data,
 		meta: result.meta,
 	});
 });
 
-const getRegistrationById = catchAsync(async (req: Request, res: Response) => {
-	const result = await CourseRegistrationService.getRegistrationById(
+const getEnrollmentById = catchAsync(async (req: Request, res: Response) => {
+	const result = await CourseRegistrationService.getEnrollmentById(
 		req.user!.userId,
 		req.user!.role,
 		req.params.id as string,
@@ -67,13 +68,13 @@ const getRegistrationById = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Registration fetched successfully",
+		message: "Enrollment fetched successfully",
 		data: result,
 	});
 });
 
-const cancelRegistration = catchAsync(async (req: Request, res: Response) => {
-	const result = await CourseRegistrationService.cancelRegistration(
+const cancelEnrollment = catchAsync(async (req: Request, res: Response) => {
+	const result = await CourseRegistrationService.cancelEnrollment(
 		req.user!.userId,
 		req.user!.role,
 		req.params.id as string,
@@ -82,16 +83,16 @@ const cancelRegistration = catchAsync(async (req: Request, res: Response) => {
 	sendResponse(res, {
 		statusCode: httpStatus.OK,
 		success: true,
-		message: "Registration cancelled. Refund processed.",
+		message: "Enrollment cancelled. Refund processed.",
 		data: result,
 	});
 });
 
 export const CourseRegistrationController = {
-	enrollCourse,
+	enrollSemester,
 	handlePaymentCallback,
-	getMyRegistrations,
-	getAllRegistrations,
-	getRegistrationById,
-	cancelRegistration,
+	getMyEnrollments,
+	getAllEnrollments,
+	getEnrollmentById,
+	cancelEnrollment,
 };

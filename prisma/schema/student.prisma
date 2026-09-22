@@ -27,6 +27,7 @@ model StudentProfile {
   cgpa           Float @default(0)
 
   registrations CourseRegistration[]
+  semesterEnrollments SemesterEnrollment[]
   attendances   Attendance[]
   results       Result[]
 

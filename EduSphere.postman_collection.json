@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "19d90ad1-01d3-41d1-9b0f-0fbfb89a38ef",
     "name": "EduSphere",
-    "description": "EduSphere University Management System — complete API collection.\n\nSet `baseURL` in collection variables. Login/Verify Email/Google Login/Refresh Token automatically save `accessToken` and `refreshToken`. Creating a department/program/course/semester/course-section/student-section and submitting an application automatically saves `departmentId`, `programId`, `courseId`, `semesterId`, `sectionId`, `studentSectionId`, and `applicationId`. Enrolling in a course via bKash saves `courseRegistrationId`. Set `instructorId` manually (an InstructorProfile id) before creating a course section with an instructor.",
+    "description": "EduSphere University Management System — complete API collection.\n\nSet `baseURL` in collection variables. Login/Verify Email/Google Login/Refresh Token automatically save `accessToken` and `refreshToken`. Creating a department/program/course/semester/course-section/student-section and submitting an application automatically saves `departmentId`, `programId`, `courseId`, `semesterId`, `sectionId`, `studentSectionId`, and `applicationId`. Enrolling in a semester via bKash saves `courseRegistrationId`. Set `instructorId` manually (an InstructorProfile id) before creating a course section with an instructor.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "49925275",
     "_collection_link": "https://go.postman.co/collection/49925275-19d90ad1-01d3-41d1-9b0f-0fbfb89a38ef?source=collection_link"
@@ -1459,7 +1459,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Fall\",\n  \"year\": 2026,\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-12-31\",\n  \"isActive\": true\n}",
+              "raw": "{\n  \"name\": \"Fall\",\n  \"year\": 2026,\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-12-31\",\n  \"registrationDeadline\": \"2026-10-15\",\n  \"isActive\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1476,7 +1476,7 @@
                 "semesters"
               ]
             },
-            "description": "Creates a semester (setting isActive deactivates all others). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `semesterId`."
+            "description": "Creates a semester (setting isActive deactivates all others; registrationDeadline closes course enrollment). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `semesterId`."
           },
           "response": []
         },
@@ -1646,7 +1646,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"sectionCode\": \"A\",\n  \"instructorId\": \"{{instructorId}}\",\n  \"capacity\": 40,\n  \"schedule\": \"Sun/Tue 10:00-11:30\",\n  \"courseFee\": 15000\n}",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"sectionCode\": \"A\",\n  \"instructorId\": \"{{instructorId}}\",\n  \"capacity\": 40,\n  \"schedule\": \"Sun/Tue 10:00-11:30\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1663,7 +1663,7 @@
                 "course-sections"
               ]
             },
-            "description": "Creates a course section for a course + semester (optional instructor). `courseFee` (BDT) is the enrollment fee collected via bKash. Roles: ADMIN, SUPER_ADMIN. Saves the new id to `sectionId`."
+            "description": "Creates a course section for a course + semester (optional instructor). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `sectionId`."
           },
           "response": []
         },
@@ -1843,15 +1843,15 @@
       "name": "Course Registrations",
       "item": [
         {
-          "name": "Enroll & Pay via bKash",
+          "name": "Enroll Semester & Pay via bKash",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "const res = pm.response.json();",
-                  "if (res && res.data && res.data.registrationId) {",
-                  "    pm.collectionVariables.set('courseRegistrationId', res.data.registrationId);",
+                  "if (res && res.data && res.data.enrollmentId) {",
+                  "    pm.collectionVariables.set('courseRegistrationId', res.data.enrollmentId);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -1869,7 +1869,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"courseSectionId\": \"{{sectionId}}\"\n}",
+              "raw": "{\n  \"courseIds\": [\n    \"{{courseId}}\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1887,7 +1887,7 @@
                 "enroll"
               ]
             },
-            "description": "Starts enrollment: creates a PENDING registration + PENDING payment, calls bKash create-payment, and returns `paymentUrl` (bKash checkout page). Role: STUDENT. Saves the new id to `courseRegistrationId`. The course section must have a positive `courseFee` and an upcoming semester."
+            "description": "Starts a semester enrollment: creates a PENDING SemesterEnrollment + PENDING registrations for each `courseSectionId` + ONE PENDING payment for the whole semester, then bKash create-payment. Fee = total credits x `credit_fee_rate` (2000/credit); total credits are capped at 25 per semester (hard block). All sections must belong to the same upcoming semester. Returns `paymentUrl` (bKash checkout page). Role: STUDENT. Saves the new id to `courseRegistrationId`."
           },
           "response": []
         },
@@ -1918,12 +1918,12 @@
                 }
               ]
             },
-            "description": "Public bKash redirect callback (no auth). On `status=success` it executes the payment (sets payment SUCCEEDED + registration ENROLLED) and emails the PDF invoice; on any other status it marks FAILED + CANCELLED. Redirects to the frontend with the result."
+            "description": "Public bKash redirect callback (no auth). On `status=success` it executes the payment (sets payment SUCCEEDED + enrollment ENROLLED + all its registrations ENROLLED) and emails the itemized PDF invoice; on any other status it marks FAILED + CANCELLED. Redirects to the frontend with the result."
           },
           "response": []
         },
         {
-          "name": "My Registrations",
+          "name": "My Enrollments",
           "request": {
             "method": "GET",
             "header": [
@@ -1934,7 +1934,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/course-registrations/my?status=&page=1&limit=10",
+              "raw": "{{baseURL}}/api/course-registrations/my?status=&semesterId=&page=1&limit=10",
               "host": [
                 "{{baseURL}}"
               ],
@@ -1947,50 +1947,10 @@
                 {
                   "key": "status",
                   "value": "",
-                  "description": "PENDING | ENROLLED | CANCELLED | COMPLETED"
+                  "description": "PENDING | ENROLLED | CANCELLED"
                 },
                 {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            },
-            "description": "Lists the authenticated student's registrations (with payment + course/semester). Role: STUDENT."
-          },
-          "response": []
-        },
-        {
-          "name": "List All Registrations",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/course-registrations?status=&courseSectionId=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-registrations"
-              ],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "",
-                  "description": "PENDING | ENROLLED | CANCELLED | COMPLETED"
-                },
-                {
-                  "key": "courseSectionId",
+                  "key": "semesterId",
                   "value": ""
                 },
                 {
@@ -2003,12 +1963,56 @@
                 }
               ]
             },
-            "description": "Lists all registrations, optionally filtered by status/course section. Roles: ADMIN, SUPER_ADMIN."
+            "description": "Lists the authenticated student's semester enrollments (with payment and course-section registrations). Role: STUDENT."
           },
           "response": []
         },
         {
-          "name": "Registration Details",
+          "name": "List All Enrollments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/course-registrations?status=&semesterId=&page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "course-registrations"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "PENDING | ENROLLED | CANCELLED"
+                },
+                {
+                  "key": "semesterId",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Lists all semester enrollments, optionally filtered by status/semester. Roles: ADMIN, SUPER_ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Enrollment Details",
           "request": {
             "method": "GET",
             "header": [
@@ -2029,12 +2033,12 @@
                 "{{courseRegistrationId}}"
               ]
             },
-            "description": "Returns a registration with its payment and section details (students can only view their own). Roles: STUDENT, ADMIN, SUPER_ADMIN."
+            "description": "Returns a semester enrollment with its payment and course-section registrations (students can only view their own). Roles: STUDENT, ADMIN, SUPER_ADMIN."
           },
           "response": []
         },
         {
-          "name": "Cancel Registration & Refund",
+          "name": "Cancel Enrollment & Refund",
           "request": {
             "method": "PATCH",
             "header": [
@@ -2056,7 +2060,7 @@
                 "cancel"
               ]
             },
-            "description": "Cancels an ENROLLED registration. If paid via bKash and the section's semester hasn't started, it issues a refund (payment → REFUNDED) and sets the registration to CANCELLED. Roles: STUDENT (own), ADMIN, SUPER_ADMIN."
+            "description": "Cancels an ENROLLED semester enrollment. If paid via bKash and the semester hasn't started (registration window still open), it issues a single refund (payment → REFUNDED) and sets the enrollment + all its registrations to CANCELLED. Roles: STUDENT (own), ADMIN, SUPER_ADMIN."
           },
           "response": []
         }

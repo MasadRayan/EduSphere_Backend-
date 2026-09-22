@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import type { Prisma } from "../../../generated/prisma/client";
 import {
+	EnrollmentStatus,
 	PaymentPurpose,
 	PaymentStatus,
 	RegistrationStatus,
@@ -16,19 +17,25 @@ import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { sendEnrollmentInvoice } from "./courseRegistration.email";
 import type {
-	ICreateRegistrationPayload,
+	ICreateEnrollmentPayload,
 	IRegistrationQuery,
 } from "./courseRegistration.interface";
 
-const registrationInclude = {
+const enrollmentInclude = {
 	payment: true,
-	courseSection: {
+	semester: true,
+	registrations: {
+		where: { isDeleted: false },
 		include: {
-			course: true,
-			semester: true,
+			courseSection: {
+				include: {
+					course: true,
+					semester: true,
+				},
+			},
 		},
 	},
-} satisfies Prisma.CourseRegistrationInclude;
+} satisfies Prisma.SemesterEnrollmentInclude;
 
 const getStudentProfileByUserId = async (userId: string) => {
 	const student = await prisma.studentProfile.findUnique({
@@ -45,117 +52,232 @@ const getStudentProfileByUserId = async (userId: string) => {
 	return student;
 };
 
-const ensureCourseSectionExists = async (courseSectionId: string) => {
-	const courseSection = await prisma.courseSection.findFirst({
-		where: { id: courseSectionId, isDeleted: false },
-		include: {
-			course: true,
-			semester: true,
-		},
-	});
-
-	if (!courseSection) {
-		throw new AppError(httpStatus.NOT_FOUND, "Course section not found");
-	}
-
-	return courseSection;
-};
-
-const ensureNotAlreadyRegistered = async (
+const ensureNoActiveEnrollmentForSemester = async (
 	studentId: string,
-	courseSectionId: string,
+	semesterId: string,
 ) => {
-	const existing = await prisma.courseRegistration.findFirst({
+	const existing = await prisma.semesterEnrollment.findFirst({
 		where: {
 			studentId,
-			courseSectionId,
-			status: { in: [RegistrationStatus.PENDING, RegistrationStatus.ENROLLED] },
+			semesterId,
+			status: { in: [EnrollmentStatus.PENDING, EnrollmentStatus.ENROLLED] },
+			isDeleted: false,
 		},
 	});
 
 	if (existing) {
 		throw new AppError(
 			httpStatus.CONFLICT,
-			"You are already registered in this course section",
+			"You already have an enrollment for this semester",
 		);
 	}
 };
 
-const ensureSeatAvailable = async (
-	courseSectionId: string,
-	capacity: number,
-) => {
-	const enrolledCount = await prisma.courseRegistration.count({
-		where: {
-			courseSectionId,
-			status: { in: [RegistrationStatus.PENDING, RegistrationStatus.ENROLLED] },
-		},
+const loadCourses = async (courseIds: string[]) => {
+	const uniqueIds = [...new Set(courseIds)];
+
+	const courses = await prisma.course.findMany({
+		where: { id: { in: uniqueIds }, isDeleted: false },
 	});
 
-	if (enrolledCount >= capacity) {
-		throw new AppError(
-			httpStatus.CONFLICT,
-			"Course section is already full",
-		);
-	}
-};
-
-const enrollCourse = async (
-	userId: string,
-	payload: ICreateRegistrationPayload,
-) => {
-	const student = await getStudentProfileByUserId(userId);
-	const courseSection = await ensureCourseSectionExists(
-		payload.courseSectionId,
-	);
-
-	if (courseSection.courseFee <= 0) {
+	if (courses.length !== uniqueIds.length) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
-			"No registration fee is configured for this course section",
+			"One or more courses were not found",
 		);
 	}
 
-	await ensureNotAlreadyRegistered(student.id, payload.courseSectionId);
-	await ensureSeatAvailable(payload.courseSectionId, courseSection.capacity);
+	return courses;
+};
 
-	// The section must belong to a not-started semester for new enrollment
-	if (courseSection.semester.startDate.getTime() < Date.now()) {
+const ensureCourseOpenSection = async (
+	studentId: string,
+	courseId: string,
+	semesterId: string,
+) => {
+	const sections = await prisma.courseSection.findMany({
+		where: {
+			courseId,
+			semesterId,
+			isDeleted: false,
+		},
+		orderBy: { createdAt: "asc" },
+	});
+
+	if (!sections.length) {
+		throw new AppError(
+			httpStatus.NOT_FOUND,
+			"No course section exists for this course in the current semester",
+		);
+	}
+
+	const sectionIds = sections.map((s) => s.id);
+
+	const counts = await prisma.courseRegistration.groupBy({
+		by: ["courseSectionId"],
+		where: {
+			courseSectionId: { in: sectionIds },
+			status: {
+				in: [RegistrationStatus.PENDING, RegistrationStatus.ENROLLED],
+			},
+		},
+		_count: { _all: true },
+	});
+
+	const enrolledMap = new Map(
+		counts.map((c) => [c.courseSectionId, c._count._all]),
+	);
+
+	const existingRegistrations = await prisma.courseRegistration.findMany({
+		where: {
+			studentId,
+			courseSectionId: { in: sectionIds },
+			status: {
+				in: [RegistrationStatus.PENDING, RegistrationStatus.ENROLLED],
+			},
+		},
+		select: { courseSectionId: true },
+	});
+	const registeredSectionIds = new Set(
+		existingRegistrations.map((r) => r.courseSectionId),
+	);
+
+	const openSection = sections.find(
+		(section) =>
+			!registeredSectionIds.has(section.id) &&
+			(enrolledMap.get(section.id) ?? 0) < section.capacity,
+	);
+
+	if (!openSection) {
+		throw new AppError(
+			httpStatus.CONFLICT,
+			"No open section is available for this course in the current semester",
+		);
+	}
+
+	return openSection;
+};
+
+const enrollSemester = async (
+	userId: string,
+	payload: ICreateEnrollmentPayload,
+) => {
+	const student = await getStudentProfileByUserId(userId);
+
+	let semesterId = student.currentSemesterId;
+
+	if (!semesterId) {
+		const activeSemester = await prisma.semester.findFirst({
+			where: { isActive: true },
+		});
+		semesterId = activeSemester?.id ?? null;
+	}
+
+	if (!semesterId) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"No current semester is set for your profile. Please contact the registrar office.",
+		);
+	}
+
+	const semester = await prisma.semester.findUnique({
+		where: { id: semesterId },
+	});
+
+	if (!semester) {
+		throw new AppError(httpStatus.NOT_FOUND, "Current semester not found");
+	}
+
+	const deadline = semester.registrationDeadline ?? semester.startDate;
+
+	if (deadline.getTime() <= Date.now()) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
 			"Enrollment for this semester has already closed",
 		);
 	}
 
-	const registration = await prisma.courseRegistration.create({
+	const courses = await loadCourses(payload.courseIds);
+	const totalCredits = courses.reduce(
+		(sum, course) => sum + course.creditHours,
+		0,
+	);
+
+	if (totalCredits > config.max_credits_per_semester) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			`Total credits (${totalCredits}) exceed the maximum of ${config.max_credits_per_semester} per semester`,
+		);
+	}
+
+	await ensureNoActiveEnrollmentForSemester(student.id, semester.id);
+
+	const sections: Array<{
+		courseId: string;
+		courseCode: string;
+		sectionId: string;
+		sectionCode: string;
+	}> = [];
+
+	for (const course of courses) {
+		const section = await ensureCourseOpenSection(
+			student.id,
+			course.id,
+			semester.id,
+		);
+		sections.push({
+			courseId: course.id,
+			courseCode: course.code,
+			sectionId: section.id,
+			sectionCode: section.sectionCode,
+		});
+	}
+
+	const totalFee = totalCredits * config.credit_fee_rate;
+
+	const enrollment = await prisma.semesterEnrollment.create({
 		data: {
 			studentId: student.id,
-			courseSectionId: payload.courseSectionId,
-			status: RegistrationStatus.PENDING,
+			semesterId: semester.id,
+			totalCredits,
+			totalFee,
+			status: EnrollmentStatus.PENDING,
+			registrations: {
+				create: sections.map((section) => ({
+					studentId: student.id,
+					courseSectionId: section.sectionId,
+					status: RegistrationStatus.PENDING,
+				})),
+			},
 			payment: {
 				create: {
 					userId,
-					amount: courseSection.courseFee,
+					amount: totalFee,
 					currency: "BDT",
 					purpose: PaymentPurpose.REGISTRATION_FEE,
 					status: PaymentStatus.PENDING,
 				},
 			},
 		},
-		include: registrationInclude,
+		include: {
+			registrations: true,
+			payment: true,
+		},
 	});
 
-	const merchantInvoiceNumber = `REG-${registration.id.slice(0, 8).toUpperCase()}`;
+	const merchantInvoiceNumber = `ENR-${enrollment.id
+		.slice(0, 8)
+		.toUpperCase()}`;
 
 	const createResponse = await bkashCreatePayment({
-		amount: courseSection.courseFee.toFixed(2),
+		amount: totalFee.toFixed(2),
 		merchantInvoiceNumber,
 		callbackURL: config.bkash_callback_url,
 		payerReference: student.studentId,
 	});
 
 	await prisma.payment.update({
-		where: { courseRegistrationId: registration.id },
+		where: { semesterEnrollmentId: enrollment.id },
 		data: {
 			bkashPaymentId: createResponse.paymentID,
 			merchantInvoiceNumber,
@@ -166,7 +288,10 @@ const enrollCourse = async (
 		paymentUrl: createResponse.bkashURL,
 		paymentID: createResponse.paymentID,
 		merchantInvoiceNumber,
-		registrationId: registration.id,
+		enrollmentId: enrollment.id,
+		totalCredits,
+		totalFee,
+		sections,
 	};
 };
 
@@ -180,11 +305,16 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 	const payment = await prisma.payment.findUnique({
 		where: { bkashPaymentId: paymentID },
 		include: {
-			courseRegistration: {
+			semesterEnrollment: {
 				include: {
 					student: { include: { user: true } },
-					courseSection: {
-						include: { course: true, semester: true },
+					semester: true,
+					registrations: {
+						include: {
+							courseSection: {
+								include: { course: true, semester: true },
+							},
+						},
 					},
 				},
 			},
@@ -195,14 +325,16 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 		throw new AppError(httpStatus.NOT_FOUND, "Payment not found");
 	}
 
-	const registration = payment.courseRegistration;
+	const enrollment = payment.semesterEnrollment;
 
-	if (!registration) {
+	if (!enrollment) {
 		throw new AppError(
 			httpStatus.NOT_FOUND,
-			"Course registration not found for this payment",
+			"Semester enrollment not found for this payment",
 		);
 	}
+
+	const registrationIds = enrollment.registrations.map((r) => r.id);
 
 	if (status !== "success") {
 		await prisma.$transaction([
@@ -210,15 +342,19 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 				where: { id: payment.id },
 				data: { status: PaymentStatus.FAILED, bkashStatus: status },
 			}),
-			prisma.courseRegistration.update({
-				where: { id: registration.id },
+			prisma.semesterEnrollment.update({
+				where: { id: enrollment.id },
+				data: { status: EnrollmentStatus.CANCELLED },
+			}),
+			prisma.courseRegistration.updateMany({
+				where: { id: { in: registrationIds } },
 				data: { status: RegistrationStatus.CANCELLED },
 			}),
 		]);
 
 		return {
 			redirectUrl: `${config.frontend_url}?payment=failed&status=${status}`,
-			registrationId: registration.id,
+			enrollmentId: enrollment.id,
 		};
 	}
 
@@ -231,25 +367,36 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 				status: PaymentStatus.SUCCEEDED,
 				bkashStatus: executeResponse.transactionStatus,
 				bkashTrxId: executeResponse.trxID,
-				bkashGatewayResponse: executeResponse as unknown as Prisma.InputJsonValue,
+				bkashGatewayResponse:
+					executeResponse as unknown as Prisma.InputJsonValue,
 			},
 		}),
-		prisma.courseRegistration.update({
-			where: { id: registration.id },
+		prisma.semesterEnrollment.update({
+			where: { id: enrollment.id },
+			data: { status: EnrollmentStatus.ENROLLED },
+		}),
+		prisma.courseRegistration.updateMany({
+			where: { id: { in: registrationIds } },
 			data: { status: RegistrationStatus.ENROLLED },
 		}),
 	]);
 
-	// Fire-and-forget invoice email (never block the bKash redirect)
 	try {
 		await sendEnrollmentInvoice({
-			to: registration.student.user.email,
-			studentName: registration.student.fullName,
-			courseTitle: registration.courseSection.course.title,
-			courseCode: registration.courseSection.course.code,
-			sectionCode: registration.courseSection.sectionCode,
-			semesterName: registration.courseSection.semester.name,
-			year: registration.courseSection.semester.year,
+			to: enrollment.student.user.email,
+			studentName: enrollment.student.fullName,
+			semesterName: enrollment.semester.name,
+			year: enrollment.semester.year,
+			totalCredits: enrollment.totalCredits,
+			courses: enrollment.registrations.map((registration) => ({
+				courseTitle: registration.courseSection.course.title,
+				courseCode: registration.courseSection.course.code,
+				sectionCode: registration.courseSection.sectionCode,
+				creditHours: registration.courseSection.course.creditHours,
+				fee:
+					registration.courseSection.course.creditHours *
+					config.credit_fee_rate,
+			})),
 			amount: payment.amount,
 			invoiceNumber: payment.merchantInvoiceNumber ?? payment.id,
 			trxId: executeResponse.trxID ?? null,
@@ -260,39 +407,40 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 	}
 
 	return {
-		redirectUrl: `${config.frontend_url}?payment=success&trxId=${executeResponse.trxID}&registrationId=${registration.id}`,
-		registrationId: registration.id,
+		redirectUrl: `${config.frontend_url}?payment=success&trxId=${executeResponse.trxID}&enrollmentId=${enrollment.id}`,
+		enrollmentId: enrollment.id,
 	};
 };
 
-const getMyRegistrations = async (
-	userId: string,
-	query: IRegistrationQuery,
-) => {
+const getMyEnrollments = async (userId: string, query: IRegistrationQuery) => {
 	const student = await getStudentProfileByUserId(userId);
 
 	const page = Math.max(1, Number(query.page) || 1);
 	const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
 	const skip = (page - 1) * limit;
 
-	const where: Prisma.CourseRegistrationWhereInput = {
+	const where: Prisma.SemesterEnrollmentWhereInput = {
 		studentId: student.id,
 		isDeleted: false,
 	};
 
 	if (query.status) {
-		where.status = query.status as RegistrationStatus;
+		where.status = query.status as EnrollmentStatus;
+	}
+
+	if (query.semesterId) {
+		where.semesterId = query.semesterId;
 	}
 
 	const [data, total] = await prisma.$transaction([
-		prisma.courseRegistration.findMany({
+		prisma.semesterEnrollment.findMany({
 			where,
 			skip,
 			take: limit,
-			orderBy: { registeredAt: "desc" },
-			include: registrationInclude,
+			orderBy: { createdAt: "desc" },
+			include: enrollmentInclude,
 		}),
-		prisma.courseRegistration.count({ where }),
+		prisma.semesterEnrollment.count({ where }),
 	]);
 
 	return {
@@ -306,30 +454,33 @@ const getMyRegistrations = async (
 	};
 };
 
-const getAllRegistrations = async (query: IRegistrationQuery) => {
+const getAllEnrollments = async (query: IRegistrationQuery) => {
 	const page = Math.max(1, Number(query.page) || 1);
 	const limit = Math.max(1, Math.min(100, Number(query.limit) || 10));
 	const skip = (page - 1) * limit;
 
-	const where: Prisma.CourseRegistrationWhereInput = { isDeleted: false };
+	const where: Prisma.SemesterEnrollmentWhereInput = { isDeleted: false };
 
 	if (query.status) {
-		where.status = query.status as RegistrationStatus;
+		where.status = query.status as EnrollmentStatus;
 	}
 
-	if (query.courseSectionId) {
-		where.courseSectionId = query.courseSectionId;
+	if (query.semesterId) {
+		where.semesterId = query.semesterId;
 	}
 
 	const [data, total] = await prisma.$transaction([
-		prisma.courseRegistration.findMany({
+		prisma.semesterEnrollment.findMany({
 			where,
 			skip,
 			take: limit,
-			orderBy: { registeredAt: "desc" },
-			include: registrationInclude,
+			orderBy: { createdAt: "desc" },
+			include: {
+				...enrollmentInclude,
+				student: { include: { user: true } },
+			},
 		}),
-		prisma.courseRegistration.count({ where }),
+		prisma.semesterEnrollment.count({ where }),
 	]);
 
 	return {
@@ -343,96 +494,97 @@ const getAllRegistrations = async (query: IRegistrationQuery) => {
 	};
 };
 
-const getRegistrationById = async (
+const getEnrollmentById = async (
 	userId: string,
 	role: Role,
-	registrationId: string,
+	enrollmentId: string,
 ) => {
-	const registration = await prisma.courseRegistration.findFirst({
-		where: { id: registrationId, isDeleted: false },
+	const enrollment = await prisma.semesterEnrollment.findFirst({
+		where: { id: enrollmentId, isDeleted: false },
 		include: {
-			...registrationInclude,
+			...enrollmentInclude,
 			student: { include: { user: true } },
 		},
 	});
 
-	if (!registration) {
-		throw new AppError(httpStatus.NOT_FOUND, "Registration not found");
+	if (!enrollment) {
+		throw new AppError(httpStatus.NOT_FOUND, "Enrollment not found");
 	}
 
-	// Students can only view their own registrations
 	if (role === Role.STUDENT) {
 		const student = await prisma.studentProfile.findUnique({
 			where: { userId },
 		});
 
-		if (!student || student.id !== registration.studentId) {
+		if (!student || student.id !== enrollment.studentId) {
 			throw new AppError(
 				httpStatus.FORBIDDEN,
-				"You are not allowed to view this registration",
+				"You are not allowed to view this enrollment",
 			);
 		}
 	}
 
-	return registration;
+	return enrollment;
 };
 
-const cancelRegistration = async (
+const cancelEnrollment = async (
 	userId: string,
 	role: Role,
-	registrationId: string,
+	enrollmentId: string,
 ) => {
-	const registration = await prisma.courseRegistration.findFirst({
-		where: { id: registrationId, isDeleted: false },
+	const enrollment = await prisma.semesterEnrollment.findFirst({
+		where: { id: enrollmentId, isDeleted: false },
 		include: {
-			...registrationInclude,
+			...enrollmentInclude,
 			student: true,
 		},
 	});
 
-	if (!registration) {
-		throw new AppError(httpStatus.NOT_FOUND, "Registration not found");
+	if (!enrollment) {
+		throw new AppError(httpStatus.NOT_FOUND, "Enrollment not found");
 	}
 
-	// Students can only cancel their own registrations
 	if (role === Role.STUDENT) {
 		const student = await prisma.studentProfile.findUnique({
 			where: { userId },
 		});
 
-		if (!student || student.id !== registration.studentId) {
+		if (!student || student.id !== enrollment.studentId) {
 			throw new AppError(
 				httpStatus.FORBIDDEN,
-				"You are not allowed to cancel this registration",
+				"You are not allowed to cancel this enrollment",
 			);
 		}
 	}
 
-	if (registration.status !== RegistrationStatus.ENROLLED) {
+	if (enrollment.status !== EnrollmentStatus.ENROLLED) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
-			"Only confirmed (enrolled) registrations can be cancelled",
+			"Only confirmed (enrolled) enrollments can be cancelled",
 		);
 	}
 
-	// Refund only allowed before the section's semester starts
-	const semesterStart = registration.courseSection.semester.startDate;
-	if (semesterStart.getTime() <= Date.now()) {
+	// Refund only allowed before the semester starts (registration window closed)
+	if (enrollment.semester.startDate.getTime() <= Date.now()) {
 		throw new AppError(
 			httpStatus.BAD_REQUEST,
-			"Refund is only allowed before the section starts",
+			"Refund is only allowed before the semester starts",
 		);
 	}
 
-	const payment = registration.payment;
+	const payment = enrollment.payment;
 
-	if (payment && payment.status === PaymentStatus.SUCCEEDED && payment.bkashTrxId) {
+	if (
+		payment &&
+		payment.status === PaymentStatus.SUCCEEDED &&
+		payment.bkashTrxId
+	) {
 		const refundResponse = await bkashRefundPayment({
 			paymentID: payment.bkashPaymentId!,
 			trxID: payment.bkashTrxId,
 			amount: payment.amount.toFixed(2),
-			sku: payment.merchantInvoiceNumber ?? "course-registration",
-			reason: "Course registration cancelled by student",
+			sku: payment.merchantInvoiceNumber ?? "semester-enrollment",
+			reason: "Semester enrollment cancelled by student",
 		});
 
 		await prisma.payment.update({
@@ -446,17 +598,29 @@ const cancelRegistration = async (
 		});
 	}
 
-	return prisma.courseRegistration.update({
-		where: { id: registrationId },
-		data: { status: RegistrationStatus.CANCELLED },
+	const registrationIds = enrollment.registrations.map((r) => r.id);
+
+	await prisma.$transaction([
+		prisma.semesterEnrollment.update({
+			where: { id: enrollmentId },
+			data: { status: EnrollmentStatus.CANCELLED },
+		}),
+		prisma.courseRegistration.updateMany({
+			where: { id: { in: registrationIds } },
+			data: { status: RegistrationStatus.CANCELLED },
+		}),
+	]);
+
+	return prisma.semesterEnrollment.findFirst({
+		where: { id: enrollmentId, isDeleted: false },
 	});
 };
 
 export const CourseRegistrationService = {
-	enrollCourse,
+	enrollSemester,
 	handlePaymentCallback,
-	getMyRegistrations,
-	getAllRegistrations,
-	getRegistrationById,
-	cancelRegistration,
+	getMyEnrollments,
+	getAllEnrollments,
+	getEnrollmentById,
+	cancelEnrollment,
 };

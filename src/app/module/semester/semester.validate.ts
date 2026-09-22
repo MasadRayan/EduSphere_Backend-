@@ -13,12 +13,21 @@ const CreateSemesterZodSchema = z
 			.max(2100, "Year must be 2100 or earlier"),
 		startDate: z.coerce.date(),
 		endDate: z.coerce.date(),
+		registrationDeadline: z.coerce.date().optional(),
 		isActive: z.boolean().optional(),
 	})
 	.refine((data) => data.startDate < data.endDate, {
 		message: "startDate must be before endDate",
 		path: ["endDate"],
-	});
+	})
+	.refine(
+		(data) =>
+			!data.registrationDeadline || data.registrationDeadline <= data.endDate,
+		{
+			message: "registrationDeadline must be on or before endDate",
+			path: ["registrationDeadline"],
+		},
+	);
 
 const UpdateSemesterZodSchema = z
 	.object({
@@ -35,6 +44,7 @@ const UpdateSemesterZodSchema = z
 			.optional(),
 		startDate: z.coerce.date().optional(),
 		endDate: z.coerce.date().optional(),
+		registrationDeadline: z.coerce.date().optional(),
 		isActive: z.boolean().optional(),
 	})
 	.refine(
@@ -42,6 +52,16 @@ const UpdateSemesterZodSchema = z
 		{
 			message: "startDate must be before endDate",
 			path: ["endDate"],
+		},
+	)
+	.refine(
+		(data) =>
+			!data.registrationDeadline ||
+			!data.endDate ||
+			data.registrationDeadline <= data.endDate,
+		{
+			message: "registrationDeadline must be on or before endDate",
+			path: ["registrationDeadline"],
 		},
 	);
 

@@ -4,9 +4,11 @@ model Semester {
   year      Int
   startDate DateTime
   endDate   DateTime
+  registrationDeadline DateTime?
   isActive  Boolean  @default(false)
 
   courseSections CourseSection[]
+  enrollments    SemesterEnrollment[]
   students StudentProfile[]
 
   createdAt DateTime @default(now())

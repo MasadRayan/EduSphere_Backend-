@@ -5,6 +5,7 @@ export interface ICreateSemesterPayload {
 	year: number;
 	startDate: Date;
 	endDate: Date;
+	registrationDeadline?: Date;
 	isActive?: boolean;
 }
 
@@ -13,6 +14,7 @@ export interface IUpdateSemesterPayload {
 	year?: number;
 	startDate?: Date;
 	endDate?: Date;
+	registrationDeadline?: Date;
 	isActive?: boolean;
 }
 

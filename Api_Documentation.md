@@ -2362,7 +2362,7 @@ Permanently deletes the course; `ON DELETE CASCADE` removes its sections (and th
 
 # EduSphere — Semester Module API Documentation
 
-Semesters (`name`, `year`, `startDate`, `endDate`, `isActive`) are the "when" of the academic calendar and are referenced by `Section`. `(name, year)` is unique. Only one semester is active at a time. Reads are open to any authenticated role; writes require `ADMIN` or `SUPER_ADMIN`.
+Semesters (`name`, `year`, `startDate`, `endDate`, `registrationDeadline`, `isActive`) are the "when" of the academic calendar and are referenced by `Section`. `(name, year)` is unique. Only one semester is active at a time. `registrationDeadline` (optional) closes course enrollment: students can enroll only while `now <= registrationDeadline`; when unset it falls back to `startDate`. Reads are open to any authenticated role; writes require `ADMIN` or `SUPER_ADMIN`.
 
 ## 1. Create Semester
 
@@ -2376,13 +2376,14 @@ POST /api/semesters
 
 ### Request Body
 
-| Field       | Type    | Required | Rules |
-|-------------|---------|----------|-------|
-| `name`      | string  | Yes      | 2–50 characters, unique with `year` |
-| `year`      | number  | Yes      | 2000–2100 |
-| `startDate` | date    | Yes      | ISO date string |
-| `endDate`   | date    | Yes      | Must be after `startDate` |
-| `isActive`  | boolean | No       | Default `false`; setting `true` deactivates all others |
+| Field                | Type    | Required | Rules |
+|----------------------|---------|----------|-------|
+| `name`               | string  | Yes      | 2–50 characters, unique with `year` |
+| `year`               | number  | Yes      | 2000–2100 |
+| `startDate`          | date    | Yes      | ISO date string |
+| `endDate`            | date    | Yes      | Must be after `startDate` |
+| `registrationDeadline` | date  | No       | On or before `endDate`; closes course enrollment |
+| `isActive`           | boolean | No       | Default `false`; setting `true` deactivates all others |
 
 ### Demo Input
 
@@ -2392,6 +2393,7 @@ POST /api/semesters
   "year": 2026,
   "startDate": "2026-09-01",
   "endDate": "2026-12-31",
+  "registrationDeadline": "2026-10-15",
   "isActive": true
 }
 ```
@@ -2409,6 +2411,7 @@ POST /api/semesters
     "year": 2026,
     "startDate": "2026-09-01T00:00:00.000Z",
     "endDate": "2026-12-31T00:00:00.000Z",
+    "registrationDeadline": "2026-10-15T00:00:00.000Z",
     "isActive": true,
     "_count": { "sections": 0, "students": 0 }
   }
@@ -2474,13 +2477,14 @@ PATCH /api/semesters/:id
 
 ### Request Body
 
-Any of `name`, `year`, `startDate`, `endDate`, `isActive` (all optional). Setting `isActive: true` deactivates all other semesters.
+Any of `name`, `year`, `startDate`, `endDate`, `registrationDeadline`, `isActive` (all optional). Setting `isActive: true` deactivates all other semesters.
 
 ### Error Responses
 
 | Status | Message |
 |--------|---------|
 | 400 | `"startDate must be before endDate"` |
+| 400 | `"registrationDeadline must be on or before endDate"` |
 | 404 | `"Semester not found"` |
 | 409 | `"Semester with this name and year already exists"` |
 

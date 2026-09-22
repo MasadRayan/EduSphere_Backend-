@@ -46,6 +46,7 @@ const createSemester = async (payload: ICreateSemesterPayload) => {
 		year: payload.year,
 		startDate: payload.startDate,
 		endDate: payload.endDate,
+		registrationDeadline: payload.registrationDeadline,
 		isActive: payload.isActive ?? false,
 	};
 
@@ -140,11 +141,22 @@ const updateSemester = async (id: string, payload: IUpdateSemesterPayload) => {
 		);
 	}
 
+	const nextDeadline =
+		payload.registrationDeadline ?? existing.registrationDeadline;
+
+	if (nextDeadline && nextDeadline > nextEndDate) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"registrationDeadline must be on or before endDate",
+		);
+	}
+
 	const data = {
 		name: payload.name,
 		year: payload.year,
 		startDate: payload.startDate,
 		endDate: payload.endDate,
+		registrationDeadline: payload.registrationDeadline,
 		isActive: payload.isActive,
 	};
 

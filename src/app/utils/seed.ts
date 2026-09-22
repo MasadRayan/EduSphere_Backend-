@@ -202,12 +202,15 @@ export const seedAcademicData = async () => {
 					year,
 				},
 			},
-			update: {},
+			update: {
+				registrationDeadline: new Date(Date.UTC(year, 9, 15)),
+			},
 			create: {
 				name: config.seed_semester_name,
 				year,
 				startDate: new Date(Date.UTC(year, 8, 1)),
 				endDate: new Date(Date.UTC(year, 11, 31)),
+				registrationDeadline: new Date(Date.UTC(year, 9, 15)),
 				isActive: true,
 			},
 		});
