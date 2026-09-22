@@ -13,6 +13,7 @@ model CourseSection {
 
   capacity Int
   schedule String? // e.g. "Sun/Tue 10:00-11:30"
+  courseFee Float @default(0) // amount a student pays to enroll in this section (BDT)
 
   registrations CourseRegistration[]
   attendances   Attendance[]

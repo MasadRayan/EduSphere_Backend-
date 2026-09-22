@@ -12,6 +12,18 @@ model Payment {
   stripeSessionId String?       @unique
   status          PaymentStatus @default(PENDING)
 
+  // bKash tokenized checkout fields
+  bkashPaymentId        String?      @unique
+  bkashTrxId            String?      @unique
+  merchantInvoiceNumber String?      @unique
+  bkashStatus           String?
+  bkashGatewayResponse  Json?
+  refundTrxId           String?
+  refundedAt            DateTime?
+
+  courseRegistrationId String? @unique
+  courseRegistration   CourseRegistration? @relation(fields: [courseRegistrationId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -16,6 +16,10 @@ const CreateCourseSectionZodSchema = z.object({
 		.string()
 		.max(100, "Schedule must be at most 100 characters long")
 		.optional(),
+	courseFee: z
+		.number()
+		.nonnegative("Course fee must be a non-negative number")
+		.optional(),
 });
 
 const UpdateCourseSectionZodSchema = z.object({

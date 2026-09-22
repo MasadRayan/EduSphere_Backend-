@@ -10,6 +10,8 @@ model CourseRegistration {
   status       RegistrationStatus @default(PENDING)
   registeredAt DateTime           @default(now())
 
+  payment Payment?
+
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 

@@ -105,6 +105,7 @@ const createCourseSection = async (payload: ICreateCourseSectionPayload) => {
 			instructorId: payload.instructorId ?? null,
 			capacity: payload.capacity,
 			schedule: payload.schedule,
+			courseFee: payload.courseFee ?? 0,
 		},
 		include: courseSectionInclude,
 	});

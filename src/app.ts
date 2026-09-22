@@ -11,6 +11,7 @@ import { globalErrorHandler } from "./app/middleware/globalErrorHandler";
 import { notFound } from "./app/middleware/notFound";
 import { AuthRoutes } from "./app/module/auth/auth.route";
 import { CourseRoutes } from "./app/module/course/course.route";
+import { CourseRegistrationRoutes } from "./app/module/courseRegistration/courseRegistration.route";
 import { CourseSectionRoutes } from "./app/module/courseSection/courseSection.route";
 import { DepartmentRoutes } from "./app/module/department/department.route";
 import { ProgramRoutes } from "./app/module/program/program.route";
@@ -40,6 +41,7 @@ app.use("/api/programs", ProgramRoutes);
 app.use("/api/courses", CourseRoutes);
 app.use("/api/semesters", SemesterRoutes);
 app.use("/api/course-sections", CourseSectionRoutes);
+app.use("/api/course-registrations", CourseRegistrationRoutes);
 app.use("/api/student-sections", StudentSectionRoutes);
 app.use("/api/student", StudentRoutes);
 

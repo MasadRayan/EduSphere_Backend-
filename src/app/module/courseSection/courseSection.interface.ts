@@ -7,6 +7,7 @@ export interface ICreateCourseSectionPayload {
 	instructorId?: string | null;
 	capacity: number;
 	schedule?: string;
+	courseFee?: number;
 }
 
 export interface IUpdateCourseSectionPayload {
