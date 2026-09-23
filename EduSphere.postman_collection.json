@@ -2454,6 +2454,89 @@
       ]
     },
     {
+      "name": "Analytics",
+      "item": [
+        {
+          "name": "Admin Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/analytics/admin?semesterId=&startDate=&endDate=",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "admin?semesterId=&startDate=&endDate="
+              ]
+            },
+            "description": "Global dashboard: users, applications, academics, enrollments, assessment, and finance (totalRevenue / totalRefunded / netRevenue from tuition payments). Roles: ADMIN, SUPER_ADMIN. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
+            "response": []
+          }
+        },
+        {
+          "name": "Student Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/analytics/student?semesterId=&startDate=&endDate=",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "student?semesterId=&startDate=&endDate="
+              ]
+            },
+            "description": "Current student's summary: CGPA, credit/completion stats, attendance, exam completion, grade breakdown, and amount spent/refunded. Role: STUDENT. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
+            "response": []
+          }
+        },
+        {
+          "name": "Instructor Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/analytics/instructor?semesterId=&startDate=&endDate=",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "analytics",
+                "instructor?semesterId=&startDate=&endDate="
+              ]
+            },
+            "description": "Assigned instructor's summary: sections, courses, students, capacity/fill rate, exams (incl. pending grading), attendance, and grade entries. Role: INSTRUCTOR. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
+            "response": []
+          }
+        }
+      ]
+    },
+    {
       "name": "Student Sections",
       "item": [
         {
