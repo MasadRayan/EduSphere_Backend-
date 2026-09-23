@@ -18,11 +18,13 @@ import { CourseSectionRoutes } from "./app/module/courseSection/courseSection.ro
 import { DepartmentRoutes } from "./app/module/department/department.route";
 import { ExamRoutes } from "./app/module/exam/exam.route";
 import { InstructorRoutes } from "./app/module/instructor/instructor.route";
+import { PaymentRoutes } from "./app/module/payment/payment.route";
 import { ProgramRoutes } from "./app/module/program/program.route";
 import { ResultRoutes } from "./app/module/result/result.route";
 import { SemesterRoutes } from "./app/module/semester/semester.route";
 import { StudentRoutes } from "./app/module/student/student.route";
 import { StudentSectionRoutes } from "./app/module/studentSection/studentSection.route";
+import { UserRoutes } from "./app/module/user/user.route";
 
 const app: Application = express();
 
@@ -51,6 +53,8 @@ app.use("/api/attendance", AttendanceRoutes);
 app.use("/api/analytics", AnalyticsRoutes);
 app.use("/api/results", ResultRoutes);
 app.use("/api/course-registrations", CourseRegistrationRoutes);
+app.use("/api/payments", PaymentRoutes);
+app.use("/api/users", UserRoutes);
 app.use("/api/student-sections", StudentSectionRoutes);
 app.use("/api/student", StudentRoutes);
 app.use("/api/instructor", InstructorRoutes);

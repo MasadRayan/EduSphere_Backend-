@@ -1,5 +1,7 @@
+import httpStatus from "http-status";
 import z from "zod";
 import { ExamType } from "../../../generated/prisma/enums";
+import { AppError } from "../../utils/AppError";
 
 const CreateExamZodSchema = z.object({
 	courseSectionId: z.string().min(1, "Course section is required"),
@@ -27,8 +29,19 @@ const ExamsQueryZodSchema = z.object({
 	limit: z.string().optional(),
 });
 
+const parseExamsQuery = (query: Record<string, unknown>) => {
+	const result = ExamsQueryZodSchema.safeParse(query);
+
+	if (!result.success) {
+		throw new AppError(httpStatus.BAD_REQUEST, result.error.issues[0].message);
+	}
+
+	return result.data;
+};
+
 export const ExamValidation = {
 	CreateExamZodSchema,
 	UpdateExamZodSchema,
 	ExamsQueryZodSchema,
+	parseExamsQuery,
 };

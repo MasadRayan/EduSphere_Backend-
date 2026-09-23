@@ -65,6 +65,7 @@ router.get(
 	StudentController.getMyGradesDetails,
 );
 router.get("/cgpa", auth(Role.STUDENT), StudentController.getMyCGPA);
+router.get("/transcript", auth(Role.STUDENT), StudentController.getTranscript);
 
 // ---- Admin routes ----
 router.get(

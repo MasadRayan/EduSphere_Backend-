@@ -13,7 +13,10 @@ router.post(
 	validateRequest(CourseRegistrationValidation.CreateEnrollmentZodSchema),
 	CourseRegistrationController.enrollSemester,
 );
-router.get("/bkash/callback", CourseRegistrationController.handlePaymentCallback);
+router.get(
+	"/bkash/callback",
+	CourseRegistrationController.handlePaymentCallback,
+);
 router.get(
 	"/my",
 	auth(Role.STUDENT),
@@ -33,6 +36,14 @@ router.patch(
 	"/:id/cancel",
 	auth(Role.STUDENT, Role.ADMIN, Role.SUPER_ADMIN),
 	CourseRegistrationController.cancelEnrollment,
+);
+router.patch(
+	"/:id/status",
+	auth(Role.ADMIN, Role.SUPER_ADMIN),
+	validateRequest(
+		CourseRegistrationValidation.UpdateRegistrationStatusZodSchema,
+	),
+	CourseRegistrationController.updateRegistrationStatus,
 );
 
 export const CourseRegistrationRoutes = router;

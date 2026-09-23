@@ -18,6 +18,7 @@ import { redisClient } from "../../lib/redis";
 import { AppError } from "../../utils/AppError";
 import { jwtUtils } from "../../utils/jwt";
 import type {
+	IChangePasswordPayload,
 	IForgotPasswordPayload,
 	IGoogleLoginPayload,
 	ILoginUserPayload,
@@ -627,6 +628,52 @@ const resetPassword = async (payload: IResetPasswordPayload) => {
 	});
 };
 
+const changePassword = async (
+	requestUser: IRequestUser,
+	payload: IChangePasswordPayload,
+) => {
+	const user = await prisma.user.findUnique({
+		where: { id: requestUser.userId },
+	});
+
+	if (!user || user.isDeleted || user.status === UserStatus.DELETED) {
+		throw new AppError(httpStatus.NOT_FOUND, "User Not Found!");
+	}
+
+	if (!user.password) {
+		throw new AppError(
+			httpStatus.FORBIDDEN,
+			"Your account has no password set. Please use the forgot password flow instead.",
+		);
+	}
+
+	const isCurrentPasswordValid = await bcrypt.compare(
+		payload.currentPassword,
+		user.password,
+	);
+
+	if (!isCurrentPasswordValid) {
+		throw new AppError(
+			httpStatus.UNAUTHORIZED,
+			"Current password is incorrect",
+		);
+	}
+
+	const hashedNewPassword = await bcrypt.hash(
+		payload.newPassword,
+		getSaltRounds(),
+	);
+
+	await prisma.user.update({
+		where: { id: user.id },
+		data: {
+			password: hashedNewPassword,
+			passwordChangedAt: new Date(),
+			needPasswordChange: false,
+		},
+	});
+};
+
 export const AuthService = {
 	registerStudent,
 	verifyStudentEmail,
@@ -636,4 +683,5 @@ export const AuthService = {
 	googleLogin,
 	forgotPassword,
 	resetPassword,
+	changePassword,
 };

@@ -10,6 +10,7 @@ import { transporter } from "../../lib/nodemailer";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { isSupportedImageBuffer } from "../../utils/imageSignature";
+import { getInstructorProfileId } from "../../utils/profileAccess";
 import type { IRequestUser } from "../auth/auth.interface";
 import type {
 	IApproveInstructorPayload,
@@ -19,28 +20,6 @@ import type {
 	IUpdateInstructorPayload,
 	IUpdateMyProfilePayload,
 } from "./instructor.interface";
-
-const getInstructorProfileId = async (userId: string) => {
-	const profile = await prisma.instructorProfile.findUnique({
-		where: { userId },
-	});
-
-	if (!profile) {
-		throw new AppError(
-			httpStatus.FORBIDDEN,
-			"Instructor profile not found. Please submit your instructor application first.",
-		);
-	}
-
-	if (profile.isDeleted) {
-		throw new AppError(
-			httpStatus.FORBIDDEN,
-			"Your instructor profile is deleted. Please contact the administration for assistance.",
-		);
-	}
-
-	return profile.id;
-};
 
 const resolveDepartment = async (departmentName: string) => {
 	const department = await prisma.department.findUnique({

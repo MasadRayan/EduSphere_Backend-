@@ -96,6 +96,22 @@ const ensureCourseOpenSection = async (
 	courseCode: string,
 	semesterId: string,
 ) => {
+	const completedRegistration = await prisma.courseRegistration.findFirst({
+		where: {
+			studentId,
+			isDeleted: false,
+			status: RegistrationStatus.COMPLETED,
+			courseSection: { is: { course: { id: courseId } } },
+		},
+	});
+
+	if (completedRegistration) {
+		throw new AppError(
+			httpStatus.CONFLICT,
+			`You have already completed ${courseCode}. Retaking a completed course is not allowed.`,
+		);
+	}
+
 	const sections = await prisma.courseSection.findMany({
 		where: {
 			courseId,
@@ -160,6 +176,58 @@ const ensureCourseOpenSection = async (
 	return openSection;
 };
 
+const ensurePrerequisitesSatisfied = async (
+	studentId: string,
+	courseIds: string[],
+) => {
+	const prereqRows = await prisma.coursePrerequisite.findMany({
+		where: { courseId: { in: courseIds } },
+		include: {
+			prerequisite: {
+				select: { id: true, code: true },
+			},
+		},
+	});
+
+	if (!prereqRows.length) {
+		return;
+	}
+
+	const completedRegistrations = await prisma.courseRegistration.findMany({
+		where: {
+			studentId,
+			isDeleted: false,
+			status: RegistrationStatus.COMPLETED,
+		},
+		select: { courseSection: { select: { courseId: true } } },
+	});
+
+	const completedCourseIds = new Set(
+		completedRegistrations.map((r) => r.courseSection.courseId),
+	);
+
+	const missingByCourse = new Map<string, string[]>();
+
+	for (const row of prereqRows) {
+		if (!completedCourseIds.has(row.prerequisiteId)) {
+			const missing = missingByCourse.get(row.courseId) ?? ([] as string[]);
+			missing.push(row.prerequisite.code);
+			missingByCourse.set(row.courseId, missing);
+		}
+	}
+
+	if (missingByCourse.size) {
+		const details = [...missingByCourse.entries()]
+			.map(([courseId, prereqs]) => `${courseId}: ${prereqs.join(", ")}`)
+			.join(" | ");
+
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			`Prerequisites not completed for the selected courses. Missing prerequisites - ${details}. Please complete them before enrolling.`,
+		);
+	}
+};
+
 const enrollSemester = async (
 	userId: string,
 	payload: ICreateEnrollmentPayload,
@@ -213,6 +281,11 @@ const enrollSemester = async (
 	}
 
 	await ensureNoActiveEnrollmentForSemester(student.id, semester.id);
+
+	await ensurePrerequisitesSatisfied(
+		student.id,
+		courses.map((c) => c.id),
+	);
 
 	const sections: Array<{
 		courseId: string;
@@ -619,6 +692,32 @@ const cancelEnrollment = async (
 	});
 };
 
+const updateRegistrationStatus = async (
+	registrationId: string,
+	status: RegistrationStatus,
+) => {
+	const registration = await prisma.courseRegistration.findFirst({
+		where: { id: registrationId, isDeleted: false },
+	});
+
+	if (!registration) {
+		throw new AppError(httpStatus.NOT_FOUND, "Course registration not found");
+	}
+
+	return prisma.courseRegistration.update({
+		where: { id: registrationId },
+		data: { status },
+		include: {
+			courseSection: {
+				include: {
+					course: true,
+					semester: true,
+				},
+			},
+		},
+	});
+};
+
 export const CourseRegistrationService = {
 	enrollSemester,
 	handlePaymentCallback,
@@ -626,4 +725,5 @@ export const CourseRegistrationService = {
 	getAllEnrollments,
 	getEnrollmentById,
 	cancelEnrollment,
+	updateRegistrationStatus,
 };

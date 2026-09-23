@@ -3,28 +3,9 @@ import { Role } from "../../generated/prisma/enums";
 import { prisma } from "../lib/prisma";
 import type { IRequestUser } from "../module/auth/auth.interface";
 import { AppError } from "./AppError";
+import { getInstructorProfileId } from "./profileAccess";
 
-export const getInstructorProfileId = async (userId: string) => {
-	const profile = await prisma.instructorProfile.findUnique({
-		where: { userId },
-	});
-
-	if (!profile) {
-		throw new AppError(
-			httpStatus.FORBIDDEN,
-			"Instructor profile not found. Please submit your instructor application first.",
-		);
-	}
-
-	if (profile.isDeleted) {
-		throw new AppError(
-			httpStatus.FORBIDDEN,
-			"Your instructor profile is deleted. Please contact the administration for assistance.",
-		);
-	}
-
-	return profile.id;
-};
+export { getInstructorProfileId };
 
 export const ensureSectionAccess = async (
 	courseSectionId: string,

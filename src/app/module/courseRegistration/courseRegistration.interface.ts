@@ -1,7 +1,12 @@
+import type { RegistrationStatus } from "../../../generated/prisma/enums";
 import type { IQuery } from "../../interfaces";
 
 export interface ICreateEnrollmentPayload {
 	courseIds: string[];
+}
+
+export interface IUpdateRegistrationStatusPayload {
+	status: RegistrationStatus;
 }
 
 export interface IRegistrationQuery extends IQuery {

@@ -299,6 +299,41 @@
             "description": "Resets the user's password using the OTP from Forgot Password."
           },
           "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"CurrentPass@1234\",\n  \"newPassword\": \"NewPass@5678\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/auth/change-password",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            }
+          },
+          "description": "Allows any authenticated user to change their own password by verifying the current password. Body: currentPassword + newPassword (min 8 chars, upper/lower/number/special).",
+          "response": []
         }
       ]
     },
@@ -1044,6 +1079,32 @@
             },
             "description": "Computes and returns the student's CGPA. Role: STUDENT."
           },
+          "response": []
+        },
+        {
+          "name": "Get Transcript",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/student/transcript?semesterId=",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "student",
+                "transcript?semesterId="
+              ]
+            }
+          },
+          "description": "Streams an A4 PDF transcript for the current student (STUDENT only). Optional query filter `semesterId` restricts output to a single semester; without it the full cumulative transcript is generated (per-semester tables + credits + CGPA).",
           "response": []
         }
       ]
@@ -2062,6 +2123,278 @@
             },
             "description": "Cancels an ENROLLED semester enrollment. If paid via bKash and the semester hasn't started (registration window still open), it issues a single refund (payment \u2192 REFUNDED) and sets the enrollment + all its registrations to CANCELLED. Roles: STUDENT (own), ADMIN, SUPER_ADMIN."
           },
+          "response": []
+        },
+        {
+          "name": "Update Registration Status (Admin Override)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}\n\n// Allowed: \"ENROLLED\" | \"COMPLETED\" | \"CANCELLED\"",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/course-registrations/{{courseRegistrationId}}/status",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "course-registrations",
+                "{{courseRegistrationId}}",
+                "status"
+              ]
+            }
+          },
+          "description": "Admin-only manual override of a single course registration's status. Use this to mark a course COMPLETED when it has no exams (auto-complete has nothing to grade). Allowed statuses: ENROLLED, COMPLETED, CANCELLED.",
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/users?role=&status=&searchTerm=&page=&limit=",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "users?role=&status=&searchTerm=&page=&limit="
+              ]
+            }
+          },
+          "description": "Paginated user list for ADMIN/SUPER_ADMIN. Filters: role, status, searchTerm (name/email). Password and token fields are omitted; profile/application summaries are included.",
+          "response": []
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/users/{{userId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "description": "Fetch a single user (ADMIN/SUPER_ADMIN) with profile/application summaries. Password fields are omitted.",
+          "response": []
+        },
+        {
+          "name": "Update User Role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}\n\n// Roles: STUDENT | INSTRUCTOR | ADMIN | SUPER_ADMIN",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/users/{{userId}}/role",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}",
+                "role"
+              ]
+            }
+          },
+          "description": "SUPER_ADMIN only. Changes a user's role. Blocks demoting the last active SUPER_ADMIN and forbids changing your own role.",
+          "response": []
+        },
+        {
+          "name": "Update User Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"BLOCKED\"\n}\n\n// Statuses: ACTIVE | BLOCKED | DELETED",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/users/{{userId}}/status",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}",
+                "status"
+              ]
+            }
+          },
+          "description": "ADMIN/SUPER_ADMIN. Blocks or unblocks a user. Blocked users are rejected by auth on protected routes and at login. Forbids blocking yourself.",
+          "response": []
+        },
+        {
+          "name": "Delete User (Soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/users/{{userId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "description": "Soft-deletes a user (isDeleted=true, status=DELETED). ADMIN/SUPER_ADMIN. You cannot delete yourself; deleting a SUPER_ADMIN requires a SUPER_ADMIN actor.",
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "List All Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/payments?status=SUCCEEDED&purpose=&semesterId=&studentId=&startDate=&endDate=&page=&limit=",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "payments?status=SUCCEEDED&purpose=&semesterId=&studentId=&startDate=&endDate=&page=&limit="
+              ]
+            }
+          },
+          "description": "ADMIN/SUPER_ADMIN payment ledger with pagination. meta.summary reports `revenue` (sum of SUCCEEDED) and `refunded` (sum of REFUNDED). Filters: status (PENDING/SUCCEEDED/FAILED/REFUNDED), purpose (TUITION/EXAM_FEE/REGISTRATION_FEE/OTHER), semesterId, studentId, startDate/endDate (YYYY-MM-DD).",
+          "response": []
+        },
+        {
+          "name": "My Payments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/payments/my?status=&purpose=&startDate=&endDate=&page=&limit=",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "my?status=&purpose=&startDate=&endDate=&page=&limit="
+              ]
+            }
+          },
+          "description": "Current student's own payments (STUDENT). Same filters and summary as the admin ledger, restricted to your userId.",
+          "response": []
+        },
+        {
+          "name": "Get Payment By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/payments/{{paymentId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{{paymentId}}"
+              ]
+            }
+          },
+          "description": "Fetch a single payment. STUDENT can only view their own payment; ADMIN/SUPER_ADMIN can view any.",
           "response": []
         }
       ]
@@ -3313,6 +3646,14 @@
     },
     {
       "key": "studentId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "paymentId",
       "value": ""
     }
   ]

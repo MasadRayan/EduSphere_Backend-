@@ -1,4 +1,3 @@
-import httpStatus from "http-status";
 import {
 	ApplicationStatus,
 	AttendanceStatus,
@@ -7,7 +6,10 @@ import {
 	RegistrationStatus,
 } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
-import { AppError } from "../../utils/AppError";
+import {
+	getInstructorProfile,
+	getStudentProfile,
+} from "../../utils/profileAccess";
 import type { IRequestUser } from "../auth/auth.interface";
 import type { IAnalyticsQueryResult } from "./analytics.validate";
 
@@ -33,30 +35,6 @@ const buildDateRange = (
 
 const buildSemesterFilter = (semesterId?: string) =>
 	semesterId ? { semesterId } : {};
-
-const getStudentProfile = async (userId: string) => {
-	const profile = await prisma.studentProfile.findUnique({
-		where: { userId },
-	});
-
-	if (!profile || profile.isDeleted) {
-		throw new AppError(httpStatus.NOT_FOUND, "Student Profile Not Found");
-	}
-
-	return profile;
-};
-
-const getInstructorProfile = async (userId: string) => {
-	const profile = await prisma.instructorProfile.findUnique({
-		where: { userId },
-	});
-
-	if (!profile || profile.isDeleted) {
-		throw new AppError(httpStatus.NOT_FOUND, "Instructor Profile Not Found");
-	}
-
-	return profile;
-};
 
 const getAdminAnalytics = async (query: IAnalyticsQueryResult) => {
 	const dateFilter = buildDateRange(query);

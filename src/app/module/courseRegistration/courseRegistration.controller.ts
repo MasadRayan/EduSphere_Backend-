@@ -2,7 +2,10 @@ import type { Request, Response } from "express";
 import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
-import type { IRegistrationQuery } from "./courseRegistration.interface";
+import type {
+	IRegistrationQuery,
+	IUpdateRegistrationStatusPayload,
+} from "./courseRegistration.interface";
 import { CourseRegistrationService } from "./courseRegistration.service";
 
 const enrollSemester = catchAsync(async (req: Request, res: Response) => {
@@ -21,13 +24,15 @@ const enrollSemester = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const handlePaymentCallback = catchAsync(async (req: Request, res: Response) => {
-	const result = await CourseRegistrationService.handlePaymentCallback(
-		req.query as Record<string, string>,
-	);
+const handlePaymentCallback = catchAsync(
+	async (req: Request, res: Response) => {
+		const result = await CourseRegistrationService.handlePaymentCallback(
+			req.query as Record<string, string>,
+		);
 
-	res.redirect(result.redirectUrl);
-});
+		res.redirect(result.redirectUrl);
+	},
+);
 
 const getMyEnrollments = catchAsync(async (req: Request, res: Response) => {
 	const result = await CourseRegistrationService.getMyEnrollments(
@@ -88,6 +93,22 @@ const cancelEnrollment = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const updateRegistrationStatus = catchAsync(
+	async (req: Request, res: Response) => {
+		const result = await CourseRegistrationService.updateRegistrationStatus(
+			req.params.id as string,
+			(req.body as IUpdateRegistrationStatusPayload).status,
+		);
+
+		sendResponse(res, {
+			statusCode: httpStatus.OK,
+			success: true,
+			message: "Course registration status updated successfully",
+			data: result,
+		});
+	},
+);
+
 export const CourseRegistrationController = {
 	enrollSemester,
 	handlePaymentCallback,
@@ -95,4 +116,5 @@ export const CourseRegistrationController = {
 	getAllEnrollments,
 	getEnrollmentById,
 	cancelEnrollment,
+	updateRegistrationStatus,
 };

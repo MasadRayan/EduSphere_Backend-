@@ -15,11 +15,6 @@ router.post(
 	validateRequest(AttendanceValidation.MarkAttendanceZodSchema),
 	AttendanceController.markAttendance,
 );
-router.get(
-	"/",
-	auth(...manageRoles),
-	validateRequest(AttendanceValidation.AttendanceQueryZodSchema),
-	AttendanceController.getAttendance,
-);
+router.get("/", auth(...manageRoles), AttendanceController.getAttendance);
 
 export const AttendanceRoutes = router;

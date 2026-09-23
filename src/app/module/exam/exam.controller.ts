@@ -3,8 +3,8 @@ import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import type { IRequestUser } from "../auth/auth.interface";
-import type { IGetExamsQuery } from "./exam.interface";
 import { ExamService } from "./exam.service";
+import { ExamValidation } from "./exam.validate";
 
 const createExam = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as IRequestUser;
@@ -20,10 +20,8 @@ const createExam = catchAsync(async (req: Request, res: Response) => {
 
 const getAllExams = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as IRequestUser;
-	const result = await ExamService.getAllExams(
-		req.query as unknown as IGetExamsQuery,
-		user,
-	);
+	const query = ExamValidation.parseExamsQuery(req.query);
+	const result = await ExamService.getAllExams(query, user);
 
 	sendResponse(res, {
 		statusCode: httpStatus.OK,

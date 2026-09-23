@@ -15,7 +15,9 @@ import { cloudinary } from "../../lib/cloudinary";
 import { transporter } from "../../lib/nodemailer";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { gradeLetterFromPoint } from "../../utils/grade";
 import { isSupportedImageBuffer } from "../../utils/imageSignature";
+import { getStudentProfileId } from "../../utils/profileAccess";
 import type { IRequestUser } from "../auth/auth.interface";
 import type {
 	IApproveApplicationPayload,
@@ -27,6 +29,10 @@ import type {
 	IUpdateStudentSectionPayload,
 	IUpdateStudentStatusPayload,
 } from "./student.interface";
+import type {
+	ITranscriptCourseRow,
+	ITranscriptSemester,
+} from "./student.transcript";
 
 type AttendanceGroup = {
 	courseSectionId: string;
@@ -68,35 +74,6 @@ type CourseGrade = {
 	totalMarks: number;
 	marksObtained: number;
 	averageGradePoint: number | null;
-};
-
-const getStudentProfileId = async (userId: string) => {
-	const profile = await prisma.studentProfile.findUnique({
-		where: { userId },
-	});
-
-	if (!profile) {
-		throw new AppError(
-			httpStatus.FORBIDDEN,
-			"Student profile not found. Please complete your enrollment application first.",
-		);
-	}
-
-	if (profile.studentStatus === "INACTIVE") {
-		throw new AppError(
-			httpStatus.FORBIDDEN,
-			"Your student profile is inactive. Please contact the administration for assistance.",
-		);
-	}
-
-	if (profile.isDeleted) {
-		throw new AppError(
-			httpStatus.FORBIDDEN,
-			"Your student profile is deleted. Please contact the administration for assistance.",
-		);
-	}
-
-	return profile.id;
 };
 
 const resolveDepartment = async (departmentName: string) => {
@@ -1190,6 +1167,160 @@ const getMyCGPA = async (userId: string) => {
 	};
 };
 
+const getTranscript = async (userId: string, semesterId?: string) => {
+	const studentProfileId = await getStudentProfileId(userId);
+
+	const student = await prisma.studentProfile.findUnique({
+		where: { id: studentProfileId },
+		include: {
+			department: true,
+			program: true,
+			section: true,
+		},
+	});
+
+	if (!student) {
+		throw new AppError(httpStatus.NOT_FOUND, "Student profile not found");
+	}
+
+	const registrations = await prisma.courseRegistration.findMany({
+		where: {
+			studentId: studentProfileId,
+			isDeleted: false,
+			status: RegistrationStatus.COMPLETED,
+			...(semesterId ? { courseSection: { is: { semesterId } } } : {}),
+		},
+		include: {
+			courseSection: {
+				include: {
+					course: true,
+					semester: true,
+					exams: {
+						include: {
+							results: { where: { studentId: studentProfileId } },
+						},
+					},
+				},
+			},
+		},
+		orderBy: {
+			courseSection: { semester: { startDate: "asc" } },
+		},
+	});
+
+	const semesterMap = new Map<
+		string,
+		{
+			id: string;
+			name: string;
+			year: number;
+			courses: ITranscriptCourseRow[];
+		}
+	>();
+
+	for (const registration of registrations) {
+		const courseSection = registration.courseSection;
+		const semester = courseSection.semester;
+
+		let entry = semesterMap.get(semester.id);
+
+		if (!entry) {
+			entry = {
+				id: semester.id,
+				name: semester.name,
+				year: semester.year,
+				courses: [],
+			};
+			semesterMap.set(semester.id, entry);
+		}
+
+		const gradePoints = courseSection.exams
+			.map((exam) => exam.results[0]?.gradePoint)
+			.filter(
+				(gradePoint): gradePoint is number =>
+					gradePoint !== null && gradePoint !== undefined,
+			);
+
+		const courseGradePoint = gradePoints.length
+			? gradePoints.reduce((sum, gradePoint) => sum + gradePoint, 0) /
+				gradePoints.length
+			: null;
+
+		entry.courses.push({
+			code: courseSection.course.code,
+			title: courseSection.course.title,
+			creditHours: courseSection.course.creditHours,
+			gradePoint: courseGradePoint,
+			grade:
+				courseGradePoint === null
+					? null
+					: gradeLetterFromPoint(courseGradePoint),
+		});
+	}
+
+	const semesters: ITranscriptSemester[] = [];
+
+	for (const entry of semesterMap.values()) {
+		let creditsAttempted = 0;
+		let creditsEarned = 0;
+		let weightedPoints = 0;
+
+		for (const course of entry.courses) {
+			if (course.gradePoint === null) {
+				continue;
+			}
+
+			creditsAttempted += course.creditHours;
+			weightedPoints += course.gradePoint * course.creditHours;
+
+			if (course.gradePoint > 0) {
+				creditsEarned += course.creditHours;
+			}
+		}
+
+		semesters.push({
+			id: entry.id,
+			name: entry.name,
+			year: entry.year,
+			gpa: creditsAttempted
+				? Number((weightedPoints / creditsAttempted).toFixed(2))
+				: 0,
+			creditsAttempted,
+			creditsEarned,
+			courses: entry.courses,
+		});
+	}
+
+	let totalAttempted = 0;
+	let totalEarned = 0;
+	let totalWeightedPoints = 0;
+
+	for (const semester of semesters) {
+		totalAttempted += semester.creditsAttempted;
+		totalEarned += semester.creditsEarned;
+		totalWeightedPoints += semester.gpa * semester.creditsAttempted;
+	}
+
+	return {
+		student: {
+			fullName: student.fullName,
+			studentId: student.studentId,
+			departmentName: student.department.name,
+			programName: student.program.name,
+			sectionCode: student.section?.sectionCode ?? null,
+			enrollmentYear: student.enrollmentYear,
+		},
+		semesters,
+		summary: {
+			creditsAttempted: totalAttempted,
+			creditsEarned: totalEarned,
+			cgpa: totalAttempted
+				? Number((totalWeightedPoints / totalAttempted).toFixed(2))
+				: 0,
+		},
+	};
+};
+
 export const StudentService = {
 	applyForEnrollment,
 	updateApplication,
@@ -1209,4 +1340,5 @@ export const StudentService = {
 	getMyGrades,
 	getMyGradesDetails,
 	getMyCGPA,
+	getTranscript,
 };

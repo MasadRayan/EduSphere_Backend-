@@ -1,11 +1,13 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
 import type { ApplicationStatus } from "../../../generated/prisma/enums";
-import type { IRequestUser } from "../auth/auth.interface";
-import { catchAsync } from "../../utils/catchAsync";
 import { AppError } from "../../utils/AppError";
+import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
+import type { IRequestUser } from "../auth/auth.interface";
 import { StudentService } from "./student.service";
+import { buildTranscriptPdfBuffer } from "./student.transcript";
+import { StudentValidation } from "./student.validate";
 
 const applyForEnrollment = catchAsync(async (req: Request, res: Response) => {
 	const user = req.user as unknown as IRequestUser;
@@ -252,6 +254,35 @@ const getMyCGPA = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getTranscript = catchAsync(async (req: Request, res: Response) => {
+	const user = req.user as unknown as IRequestUser;
+
+	const queryResult = StudentValidation.TranscriptQueryZodSchema.safeParse(
+		req.query,
+	);
+
+	if (!queryResult.success) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			queryResult.error.issues[0].message,
+		);
+	}
+
+	const { semesterId } = queryResult.data;
+	const transcriptData = await StudentService.getTranscript(
+		user.userId,
+		semesterId,
+	);
+	const buffer = await buildTranscriptPdfBuffer(transcriptData);
+
+	res.setHeader("Content-Type", "application/pdf");
+	res.setHeader(
+		"Content-Disposition",
+		`inline; filename="transcript-${transcriptData.student.studentId}.pdf"`,
+	);
+	res.end(buffer);
+});
+
 export const StudentController = {
 	applyForEnrollment,
 	updateApplication,
@@ -271,4 +302,5 @@ export const StudentController = {
 	getMyGrades,
 	getMyGradesDetails,
 	getMyCGPA,
+	getTranscript,
 };

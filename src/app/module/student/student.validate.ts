@@ -43,6 +43,10 @@ const RejectApplicationZodSchema = z.object({
 	reviewNote: z.string().optional(),
 });
 
+const TranscriptQueryZodSchema = z.object({
+	semesterId: z.string().min(1).optional(),
+});
+
 export const StudentValidation = {
 	StudentApplyZodSchema,
 	UpdateMyProfileZodSchema,
@@ -51,4 +55,5 @@ export const StudentValidation = {
 	UpdateCurrentSemesterZodSchema,
 	UpdateStudentSectionZodSchema,
 	UpdateStudentStatusZodSchema,
+	TranscriptQueryZodSchema,
 };

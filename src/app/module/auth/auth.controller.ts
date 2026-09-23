@@ -178,6 +178,18 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const changePassword = catchAsync(async (req: Request, res: Response) => {
+	const user = req.user as IRequestUser;
+	await AuthService.changePassword(user, req.body);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Password changed successfully",
+		data: null,
+	});
+});
+
 export const AuthController = {
 	registerStudent,
 	verifyStudentEmail,
@@ -187,4 +199,5 @@ export const AuthController = {
 	googleLogin,
 	forgotPassword,
 	resetPassword,
+	changePassword,
 };

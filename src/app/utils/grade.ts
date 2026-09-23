@@ -28,3 +28,34 @@ export const gradeFromPercentage = (percentage: number) => {
 	}
 	return { grade: "F", gradePoint: 0.0 };
 };
+
+export const gradeLetterFromPoint = (gradePoint: number) => {
+	if (gradePoint >= 4.0) {
+		return "A+";
+	}
+	if (gradePoint >= 3.75) {
+		return "A";
+	}
+	if (gradePoint >= 3.5) {
+		return "A-";
+	}
+	if (gradePoint >= 3.25) {
+		return "B+";
+	}
+	if (gradePoint >= 3.0) {
+		return "B";
+	}
+	if (gradePoint >= 2.75) {
+		return "B-";
+	}
+	if (gradePoint >= 2.5) {
+		return "C+";
+	}
+	if (gradePoint >= 2.25) {
+		return "C";
+	}
+	if (gradePoint >= 2.0) {
+		return "D";
+	}
+	return "F";
+};

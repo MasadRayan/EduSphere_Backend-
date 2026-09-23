@@ -1,11 +1,13 @@
 import ejs from "ejs";
-import PDFDocument from "pdfkit";
 import path from "path";
+import PDFDocument from "pdfkit";
 import config from "../../config";
 import { transporter } from "../../lib/nodemailer";
 import type { IInvoiceMailPayload } from "./courseRegistration.interface";
 
-const buildInvoiceBuffer = async (payload: IInvoiceMailPayload): Promise<Buffer> => {
+const buildInvoiceBuffer = async (
+	payload: IInvoiceMailPayload,
+): Promise<Buffer> => {
 	const doc = new PDFDocument({ margin: 50, size: "A4" });
 
 	const chunks: Buffer[] = [];
@@ -94,9 +96,12 @@ const buildInvoiceBuffer = async (payload: IInvoiceMailPayload): Promise<Buffer>
 		doc
 			.fillColor("#0f172a")
 			.fontSize(10)
-			.text(`${course.courseCode} - ${course.courseTitle} (${course.sectionCode})`, {
-				continued: true,
-			})
+			.text(
+				`${course.courseCode} - ${course.courseTitle} (${course.sectionCode})`,
+				{
+					continued: true,
+				},
+			)
 			.text(`${course.creditHours}`, {
 				width: 80,
 				align: "right",

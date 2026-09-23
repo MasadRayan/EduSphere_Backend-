@@ -1,5 +1,7 @@
+import httpStatus from "http-status";
 import z from "zod";
 import { AttendanceStatus } from "../../../generated/prisma/enums";
+import { AppError } from "../../utils/AppError";
 
 const MarkAttendanceZodSchema = z.object({
 	courseSectionId: z.string().min(1, "Course section is required"),
@@ -19,7 +21,18 @@ const AttendanceQueryZodSchema = z.object({
 	date: z.string().optional(),
 });
 
+const parseAttendanceQuery = (query: Record<string, unknown>) => {
+	const result = AttendanceQueryZodSchema.safeParse(query);
+
+	if (!result.success) {
+		throw new AppError(httpStatus.BAD_REQUEST, result.error.issues[0].message);
+	}
+
+	return result.data;
+};
+
 export const AttendanceValidation = {
 	MarkAttendanceZodSchema,
 	AttendanceQueryZodSchema,
+	parseAttendanceQuery,
 };

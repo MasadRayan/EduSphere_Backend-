@@ -48,12 +48,26 @@ const ResetPasswordZodSchema = z.object({
 	otp: z.string().length(6),
 });
 
+const passwordSchema = z
+	.string()
+	.min(8, "Password Must Minimum 8 Characters Long.")
+	.regex(/[a-z]/, "Password must contain atleast 1 Lowercase Letter")
+	.regex(/[A-Z]/, "Password must contain atleast 1 Uppercase Letter")
+	.regex(/[0-9]/, "Password must contain atleast 1 Number")
+	.regex(/[^A-Za-z0-9]/, "Password must contain atleast 1 Special Character");
+
+const ChangePasswordZodSchema = z.object({
+	currentPassword: z.string().min(1, "Current password is required"),
+	newPassword: passwordSchema,
+});
+
 export const UserValidation = {
 	StudentRegistrationZodSchema,
 	StudentEmailVerifyZodSchema,
 	LoginZodSchema,
 	ForgotPasswordZodSchema,
 	ResetPasswordZodSchema,
+	ChangePasswordZodSchema,
 };
 
 export const AuthValidation = UserValidation;

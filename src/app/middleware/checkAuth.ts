@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import type { JwtPayload } from "jsonwebtoken";
 import type { Role } from "../../generated/prisma/enums";
+import { UserStatus } from "../../generated/prisma/enums";
 import config from "../config";
 import { prisma } from "../lib/prisma";
 import { catchAsync } from "../utils/catchAsync";
@@ -59,6 +60,12 @@ export const auth = (...requiredRoles: Role[]) => {
 
 		if (user.isDeleted) {
 			throw new Error("User is deleted. Please contact support.");
+		}
+
+		if (user.status !== UserStatus.ACTIVE) {
+			throw new Error(
+				"Your account is blocked. Please contact the administration.",
+			);
 		}
 
 		// Optional: verify token email/role matches DB
