@@ -2813,6 +2813,11 @@
     {
       "key": "studentSectionId",
       "value": ""
+    },
+    {
+      "key": "instructorApplicationId",
+      "value": "",
+      "type": "string"
     }
   ]
 }

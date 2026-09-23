@@ -17,24 +17,24 @@ router.get("/me", auth(Role.INSTRUCTOR), InstructorController.getMyInfo);
 
 router.post(
 	"/apply",
-	auth(Role.INSTRUCTOR),
+	auth(Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN),
 	validateRequest(InstructorValidation.InstructorApplyZodSchema),
 	InstructorController.applyForInstructor,
 );
 router.put(
 	"/apply",
-	auth(Role.INSTRUCTOR),
+	auth(Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN),
 	validateRequest(InstructorValidation.InstructorApplyZodSchema),
 	InstructorController.updateApplication,
 );
 router.get(
 	"/application",
-	auth(Role.INSTRUCTOR),
+	auth(Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN),
 	InstructorController.getMyApplication,
 );
 router.post(
 	"/resume",
-	auth(Role.INSTRUCTOR),
+	auth(Role.STUDENT, Role.INSTRUCTOR, Role.ADMIN, Role.SUPER_ADMIN),
 	resumeUpload.single("resume"),
 	handleMulterErrors,
 	InstructorController.uploadResume,
