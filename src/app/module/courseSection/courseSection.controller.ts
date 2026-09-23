@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import httpStatus from "http-status";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
+import type { IRequestUser } from "../auth/auth.interface";
 import type { ICourseSectionQuery } from "./courseSection.interface";
 import { CourseSectionService } from "./courseSection.service";
 
@@ -78,6 +79,19 @@ const deleteCourseSection = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
+const getSectionStudents = catchAsync(async (req: Request, res: Response) => {
+	const user = req.user as IRequestUser;
+	const id = req.params.id as string;
+	const result = await CourseSectionService.getSectionStudents(id, user);
+
+	sendResponse(res, {
+		statusCode: httpStatus.OK,
+		success: true,
+		message: "Section students fetched successfully",
+		data: result,
+	});
+});
+
 export const CourseSectionController = {
 	createCourseSection,
 	getAllCourseSections,
@@ -85,4 +99,5 @@ export const CourseSectionController = {
 	updateCourseSection,
 	assignInstructor,
 	deleteCourseSection,
+	getSectionStudents,
 };

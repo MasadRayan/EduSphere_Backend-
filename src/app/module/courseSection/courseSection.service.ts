@@ -1,7 +1,10 @@
 import httpStatus from "http-status";
 import type { Prisma } from "../../../generated/prisma/client";
+import { RegistrationStatus } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { ensureSectionAccess } from "../../utils/sectionAccess";
+import type { IRequestUser } from "../auth/auth.interface";
 import type {
 	IAssignInstructorPayload,
 	ICourseSectionQuery,
@@ -221,6 +224,41 @@ const deleteCourseSection = async (id: string) => {
 	return prisma.courseSection.delete({ where: { id } });
 };
 
+const getSectionStudents = async (id: string, user: IRequestUser) => {
+	const courseSection = await ensureSectionAccess(id, user);
+
+	const registrations = await prisma.courseRegistration.findMany({
+		where: {
+			courseSectionId: id,
+			isDeleted: false,
+			status: {
+				in: [RegistrationStatus.ENROLLED, RegistrationStatus.COMPLETED],
+			},
+		},
+		include: {
+			student: {
+				include: {
+					user: {
+						select: {
+							name: true,
+							email: true,
+							imageURL: true,
+						},
+					},
+				},
+			},
+		},
+		orderBy: {
+			registeredAt: "asc",
+		},
+	});
+
+	return {
+		courseSection,
+		students: registrations.map((registration) => registration.student),
+	};
+};
+
 export const CourseSectionService = {
 	createCourseSection,
 	getAllCourseSections,
@@ -228,4 +266,5 @@ export const CourseSectionService = {
 	updateCourseSection,
 	assignInstructor,
 	deleteCourseSection,
+	getSectionStudents,
 };

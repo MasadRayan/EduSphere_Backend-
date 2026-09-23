@@ -2067,6 +2067,388 @@
       ]
     },
     {
+      "name": "Exams & Attendance",
+      "item": [
+        {
+          "name": "Create Exam",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/exams",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "exams"
+              ]
+            },
+            "description": "Creates an exam (MIDTERM/FINAL/QUIZ/ASSIGNMENT) for a course section. Saves `examId`. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseSectionId\": \"{{courseSectionId}}\",\n  \"type\": \"MIDTERM\",\n  \"date\": \"2026-09-30\",\n  \"totalMarks\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": {
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const res = pm.response.json();",
+                "if (res && res.data && res.data.id) {",
+                "    pm.collectionVariables.set('examId', res.data.id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }
+        },
+        {
+          "name": "List Exams",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/exams?courseSectionId=&page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "exams?courseSectionId=&page=1&limit=10"
+              ]
+            },
+            "description": "Lists exams. Optionally filter by `courseSectionId`. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": []
+          }
+        },
+        {
+          "name": "Get Exam",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/exams/{{examId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "exams",
+                "{{examId}}"
+              ]
+            },
+            "description": "Fetches a single exam with its course section. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": []
+          }
+        },
+        {
+          "name": "Update Exam",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/exams/{{examId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "exams",
+                "{{examId}}"
+              ]
+            },
+            "description": "Updates an exam's type/date/totalMarks. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"FINAL\",\n  \"date\": \"2026-12-15\",\n  \"totalMarks\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Exam",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/exams/{{examId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "exams",
+                "{{examId}}"
+              ]
+            },
+            "description": "Deletes an exam and its results (cascade). Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": []
+          }
+        },
+        {
+          "name": "Section Students",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/course-sections/{{courseSectionId}}/students",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "course-sections",
+                "{{courseSectionId}}",
+                "students"
+              ]
+            },
+            "description": "Roster: enrolled (+completed) students of a course section. Use their `id` values as `studentId` when marking attendance / entering results. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": []
+          }
+        },
+        {
+          "name": "Mark Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/attendance",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "attendance"
+              ]
+            },
+            "description": "Marks attendance for a section on a given date (upserts per student/date). Students must be enrolled. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseSectionId\": \"{{courseSectionId}}\",\n  \"date\": \"2026-09-30\",\n  \"records\": [\n    { \"studentId\": \"{{studentId}}\", \"status\": \"PRESENT\" }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Attendance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/attendance?courseSectionId={{courseSectionId}}&date=2026-09-30",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "attendance?courseSectionId={{courseSectionId}}&date=2026-09-30"
+              ]
+            },
+            "description": "Fetches attendance records for a section, optionally for a specific date. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": []
+          }
+        },
+        {
+          "name": "Enter Results",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/results",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "results"
+              ]
+            },
+            "description": "Enters marks for an exam (batch upsert). Grade & gradePoint are auto-computed on the BD scale; marks cannot exceed the exam total; results are only accepted for students enrolled in the section. When a student has results for every exam in the section their registration is auto-completed, and students are notified. Saves the first `resultId`. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"examId\": \"{{examId}}\",\n  \"records\": [\n    { \"studentId\": \"{{studentId}}\", \"marksObtained\": 24 }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": {
+            "listen": "test",
+            "script": {
+              "exec": [
+                "const res = pm.response.json();",
+                "if (res && res.data && res.data[0] && res.data[0].id) {",
+                "    pm.collectionVariables.set('resultId', res.data[0].id);",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }
+        },
+        {
+          "name": "Update Result",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/results/{{resultId}}",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "results",
+                "{{resultId}}"
+              ]
+            },
+            "description": "Updates a student's marks for an exam; grade/gradePoint are recomputed. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marksObtained\": 27\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List Results",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/results?examId=&courseSectionId={{courseSectionId}}&studentId=&page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "results?examId=&courseSectionId={{courseSectionId}}&studentId=&page=1&limit=10"
+              ]
+            },
+            "description": "Lists results, filtered by `examId`, `courseSectionId`, or `studentId` (at least one required). Instructors must scope by exam/section; admins may filter by student alone.",
+            "response": []
+          }
+        },
+        {
+          "name": "Get Exam Results",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/exams/{{examId}}/results",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "exams",
+                "{{examId}}",
+                "results"
+              ]
+            },
+            "description": "Fetches all results for an exam, best first. Exams, results and attendance recording. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR (assigned to the course section).",
+            "response": []
+          }
+        }
+      ]
+    },
+    {
       "name": "Student Sections",
       "item": [
         {
@@ -2828,6 +3210,22 @@
       "key": "instructorApplicationId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "courseSectionId",
+      "value": ""
+    },
+    {
+      "key": "examId",
+      "value": ""
+    },
+    {
+      "key": "resultId",
+      "value": ""
+    },
+    {
+      "key": "studentId",
+      "value": ""
     }
   ]
 }

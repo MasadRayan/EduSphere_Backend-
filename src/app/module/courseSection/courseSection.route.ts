@@ -23,6 +23,11 @@ router.get(
 	auth(Role.ADMIN, Role.SUPER_ADMIN, Role.INSTRUCTOR, Role.STUDENT),
 	CourseSectionController.getCourseSectionById,
 );
+router.get(
+	"/:id/students",
+	auth(Role.ADMIN, Role.SUPER_ADMIN, Role.INSTRUCTOR),
+	CourseSectionController.getSectionStudents,
+);
 router.patch(
 	"/:id/assign-instructor",
 	auth(Role.ADMIN, Role.SUPER_ADMIN),
