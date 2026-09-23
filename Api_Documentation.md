@@ -398,6 +398,59 @@ POST /api/auth/reset-password
 
 ---
 
+## 9. Change Password
+
+Changes the password of the currently authenticated user. Available to every role (`STUDENT`, `INSTRUCTOR`, `ADMIN`, `SUPER_ADMIN`). Accounts created via Google (no password set) cannot use this flow.
+
+```
+PATCH /api/auth/change-password
+```
+
+### Auth & Roles
+
+Any authenticated user. Requires a valid `accessToken` (cookie or `Authorization: Bearer <token>`).
+
+### Request Body
+
+| Field             | Type   | Required | Rules |
+|-------------------|--------|----------|-------|
+| `currentPassword` | string | Yes      | Current password (non-empty) |
+| `newPassword`     | string | Yes      | Min 8 chars, at least 1 uppercase, 1 lowercase, 1 number, 1 special character |
+
+### Demo Input
+
+```json
+{
+  "currentPassword": "Pass@1234",
+  "newPassword": "NewPass@5678"
+}
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Password changed successfully",
+  "data": null
+}
+```
+
+On success the user's `passwordChangedAt` is updated and `needPasswordChange` is set to `false`. An email notification is sent.
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"User Not Found!"` |
+| 403 | `"Your account has no password set. Please use the forgot password flow instead."` |
+| 401 | `"Current password is incorrect"` |
+| 401 | `"Your account is blocked. Please contact the administration."` (blocked account) |
+| 400 | Validation error (invalid body shape) |
+
+---
+
 ## Response Format
 
 All endpoints return responses in this shape:
@@ -1773,6 +1826,49 @@ Returns the updated `StudentProfile` with `department`, `program`, `currentSemes
 
 ---
 
+## 19. Get Transcript (PDF)
+
+Generates a PDF academic transcript for the current student. By default it includes all semesters; pass `semesterId` to limit it to one semester. Courses are grouped by semester; grade point is the average of the per-exam `gradePoint` values. Only `COMPLETED` registrations are included.
+
+```
+GET /api/student/transcript?semesterId=
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Query Parameters
+
+| Field        | Type   | Required | Rules |
+|--------------|--------|----------|-------|
+| `semesterId` | string | No       | Existing semester id; omit for full transcript |
+
+### Demo Request
+
+```
+GET /api/student/transcript?semesterId=sm1d2e3f-4a5b-6c7d-8e9f-111111111111
+```
+
+### Response (200 OK)
+
+Not JSON. Returns the PDF file bytes directly:
+
+- `Content-Type: application/pdf`
+- `Content-Disposition: inline; filename="transcript-<studentId>.pdf"`
+
+The PDF contains the student name, `studentId`, department, program, section, enrollment year, a per-semester breakdown (course code/title, credit hours, grade, grade point, GPA) and a final summary with total credits attempted, credits earned, and CGPA.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Student profile not found"` |
+| 404 | `"Semester not found"` |
+| 400 | Validation error (invalid query) |
+
+---
+
 ## Student Module — Route Summary
 
 | # | Method | Route | Auth | Description |
@@ -1795,6 +1891,7 @@ Returns the updated `StudentProfile` with `department`, `program`, `currentSemes
 | 16 | PATCH | `/api/student/:id/current-semester` | ADMIN, SUPER_ADMIN | Set/clear a student's current semester |
 | 17 | PATCH | `/api/student/:id/section` | ADMIN, SUPER_ADMIN | Assign/clear a student's fixed section |
 | 18 | PATCH | `/api/student/:id/status` | ADMIN, SUPER_ADMIN | Update student status (e.g. ACTIVE) |
+| 19 | GET | `/api/student/transcript` | STUDENT | Download academic transcript as PDF |
 
 ---
 
@@ -3053,3 +3150,1155 @@ Soft-deletes the instructor (`isDeleted`, `deletedAt`) and unassigns their cours
 | 13 | GET | `/api/instructor/:id` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Get instructor by ID |
 | 14 | PATCH | `/api/instructor/:id` | ADMIN, SUPER_ADMIN | Update instructor |
 | 15 | DELETE | `/api/instructor/:id` | ADMIN, SUPER_ADMIN | Soft-delete instructor |
+
+---
+
+# EduSphere — Course Registration Module API Documentation
+
+> **Base URL:** `http://localhost:8000/api/course-registrations`  
+> **Content-Type:** `application/json`
+
+The course registration flow enrolls a student into courses for their current (or active) semester, creates a bKash payment, and — once paid — marks the enrollment and registrations as `ENROLLED`. A student can only register for one set of courses per semester.
+
+## 1. Enroll in a Semester
+
+```
+POST /api/course-registrations/enroll
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Request Body
+
+| Field       | Type     | Required | Rules |
+|-------------|----------|----------|-------|
+| `courseIds` | string[] | Yes      | 1–20 course ids, no duplicates |
+
+### Demo Input
+
+```json
+{
+  "courseIds": [
+    "cccc1111-2222-3333-4444-555555555555",
+    "cccc2222-2222-3333-4444-555555555555"
+  ]
+}
+```
+
+### Response (201 Created)
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Enrollment initiated for the semester. Please complete payment via bKash.",
+  "data": {
+    "paymentUrl": "https://sandbox.bka.sh/tokenized/checkout/pay?token=XXXX",
+    "paymentID": "TR0011223344556677",
+    "merchantInvoiceNumber": "ENR-ABC12345",
+    "enrollmentId": "clm1abc2defg3456789000000",
+    "totalCredits": 6,
+    "totalFee": 24000,
+    "sections": [
+      {
+        "courseId": "cccc1111-2222-3333-4444-555555555555",
+        "courseCode": "CSE-101",
+        "sectionId": "sec11111-2222-3333-4444-555555555555",
+        "sectionCode": "A"
+      }
+    ]
+  }
+}
+```
+
+Selection logic: the student's `currentSemesterId` is used, falling back to the active semester. Open sections are auto-assigned in creation order (respecting capacity and preventing re-enrollment into a completed course).
+
+### Error Responses
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Student profile not found. Please complete your student profile first."` |
+| 400 | `"No current semester is set for your profile. Please contact the registrar office."` |
+| 404 | `"Current semester not found"` |
+| 400 | `"Enrollment for this semester has already closed"` |
+| 400 | `"One or more courses were not found"` |
+| 400 | `"Total credits (N) exceed the maximum of N per semester"` |
+| 409 | `"You already have an enrollment for this semester"` |
+| 400 | `"Prerequisites not completed for the selected courses. Missing prerequisites - <details>. Please complete them before enrolling."` |
+| 404 | `"No course section exists for <CODE> in the current semester. Contact the registrar office."` |
+| 409 | `"You have already completed <CODE>. Retaking a completed course is not allowed."` |
+| 409 | `"No open seat is available in any section of <CODE> in the current semester"` |
+
+## 2. bKash Payment Callback
+
+```
+GET /api/course-registrations/bkash/callback?paymentID=&status=
+```
+
+Public route (no auth) invoked by bKash after a payment attempt. Executes the payment when `status=success`, otherwise marks the payment `FAILED` and cancels the enrollment/registrations. On success the student's enrollments become `ENROLLED` and an invoice email is sent.
+
+This endpoint does **not** return JSON — it redirects the browser:
+
+| Outcome | Redirect |
+|---------|----------|
+| Success | `<frontend>?payment=success&trxId=<trx>&enrollmentId=<id>` |
+| Failure | `<frontend>?payment=failed&status=<status>` |
+
+## 3. Get My Enrollments
+
+```
+GET /api/course-registrations/my?status=&semesterId=&page=&limit=
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Query Parameters
+
+| Field        | Type   | Required | Rules |
+|--------------|--------|----------|-------|
+| `status`     | string | No       | `PENDING`, `ENROLLED`, `CANCELLED` |
+| `semesterId` | string | No       | Filter by semester |
+| `page`       | number | No       | Default 1 |
+| `limit`      | number | No       | Default 10, max 100 |
+
+### Response (200 OK)
+
+Paginated list. Each row includes `payment`, the `semester`, and `registrations` (each with `courseSection` → `course` + `semester`).
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Student profile not found. Please complete your student profile first."` |
+
+## 4. List All Enrollments (Admin)
+
+```
+GET /api/course-registrations?status=&semesterId=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+Same query parameters and shape as **Get My Enrollments**, but each row additionally includes the `student` (with `user`).
+
+## 5. Get Enrollment by ID
+
+```
+GET /api/course-registrations/:id
+```
+
+### Auth & Roles
+
+`STUDENT` · `ADMIN` · `SUPER_ADMIN`
+
+Students can only view their own enrollments.
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Enrollment not found"` |
+| 403 | `"You are not allowed to view this enrollment"` |
+
+## 6. Cancel Enrollment
+
+```
+PATCH /api/course-registrations/:id/cancel
+```
+
+### Auth & Roles
+
+`STUDENT` · `ADMIN` · `SUPER_ADMIN`
+
+Students can only cancel their own enrollments. Only `ENROLLED` (paid) enrollments can be cancelled, and only before the semester `startDate` (this is the refund window). If the payment succeeded, a bKash refund is issued (`REFUNDED`); the enrollment and its registrations are set to `CANCELLED`.
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Enrollment cancelled. Refund processed.",
+  "data": {
+    "id": "clm1abc2defg3456789000000",
+    "studentId": "st1abc2defg345678900000000",
+    "semesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+    "totalCredits": 6,
+    "totalFee": 24000,
+    "status": "CANCELLED",
+    "isDeleted": false,
+    "deletedAt": null,
+    "createdAt": "2026-01-05T10:00:00.000Z",
+    "updatedAt": "2026-01-10T10:00:00.000Z"
+  }
+}
+```
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Enrollment not found"` |
+| 403 | `"You are not allowed to cancel this enrollment"` |
+| 400 | `"Only confirmed (enrolled) enrollments can be cancelled"` |
+| 400 | `"Refund is only allowed before the semester starts"` |
+
+## 7. Update Registration Status (Admin)
+
+Manually overrides a single course registration's status — e.g. to mark a course `COMPLETED` when it cannot be auto-completed.
+
+```
+PATCH /api/course-registrations/:id/status
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Path Parameters
+
+`:id` — the `CourseRegistration` id (not the enrollment id).
+
+### Request Body
+
+| Field    | Type   | Required | Rules |
+|----------|--------|----------|-------|
+| `status` | string | Yes      | `ENROLLED`, `COMPLETED`, `CANCELLED` |
+
+### Demo Input
+
+```json
+{
+  "status": "COMPLETED"
+}
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Course registration status updated successfully",
+  "data": {
+    "id": "reg12345-6789-abcd-ef01-234567890123",
+    "studentId": "st1abc2defg345678900000000",
+    "courseSectionId": "sec11111-2222-3333-4444-555555555555",
+    "status": "COMPLETED",
+    "isDeleted": false,
+    "deletedAt": null,
+    "createdAt": "2026-01-05T10:00:00.000Z",
+    "updatedAt": "2026-01-20T10:00:00.000Z",
+    "courseSection": {
+      "id": "sec11111-2222-3333-4444-555555555555",
+      "course": { "id": "cccc1111-2222-3333-4444-555555555555", "code": "CSE-101", "title": "Computer Fundamentals", "creditHours": 3 },
+      "semester": { "id": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111", "name": "Fall", "year": 2026 }
+    }
+  }
+}
+```
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Course registration not found"` |
+| 400 | Validation error (invalid status) |
+
+## Course Registration Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/course-registrations/enroll` | STUDENT | Start enrollment + bKash payment |
+| 2 | GET | `/api/course-registrations/bkash/callback` | public | bKash payment callback (redirect) |
+| 3 | GET | `/api/course-registrations/my` | STUDENT | List my semester enrollments |
+| 4 | GET | `/api/course-registrations` | ADMIN, SUPER_ADMIN | List all enrollments |
+| 5 | GET | `/api/course-registrations/:id` | STUDENT, ADMIN, SUPER_ADMIN | Get one enrollment |
+| 6 | PATCH | `/api/course-registrations/:id/cancel` | STUDENT, ADMIN, SUPER_ADMIN | Cancel enrollment + refund |
+| 7 | PATCH | `/api/course-registrations/:id/status` | ADMIN, SUPER_ADMIN | Override registration status |
+
+---
+
+# EduSphere — Payment Module API Documentation
+
+> **Base URL:** `http://localhost:8000/api/payments`  
+> **Content-Type:** `application/json`
+
+Payments are created by the course registration flow (purpose `REGISTRATION_FEE`); this module provides read-only access for students and admins.
+
+## 1. List All Payments (Admin)
+
+```
+GET /api/payments?status=&purpose=&semesterId=&studentId=&startDate=&endDate=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Query Parameters
+
+| Field        | Type   | Required | Rules |
+|--------------|--------|----------|-------|
+| `status`     | string | No       | `PENDING`, `SUCCEEDED`, `FAILED`, `REFUNDED` |
+| `purpose`    | string | No       | `TUITION`, `EXAM_FEE`, `REGISTRATION_FEE`, `OTHER` |
+| `semesterId` | string | No       | Filter by semester |
+| `studentId`  | string | No       | Filter by `StudentProfile` id |
+| `startDate`  | string | No       | `createdAt >=` (ISO date) |
+| `endDate`    | string | No       | `createdAt <=` (ISO date) |
+| `page`       | number | No       | Default 1 |
+| `limit`      | number | No       | Default 10, max 100 |
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Payments retrieved successfully",
+  "data": [
+    {
+      "id": "pay1234-5678-abcd-ef01-234567890123",
+      "userId": "usr12345-6789-abcd-ef01-234567890123",
+      "semesterEnrollmentId": "clm1abc2defg3456789000000",
+      "amount": 24000,
+      "currency": "BDT",
+      "status": "SUCCEEDED",
+      "purpose": "REGISTRATION_FEE",
+      "bkashPaymentId": "TR0011223344556677",
+      "merchantInvoiceNumber": "ENR-ABC12345",
+      "bkashStatus": "0011",
+      "bkashTrxId": "12ABC34DEF56",
+      "refundTrxId": null,
+      "refundedAt": null,
+      "bkashGatewayResponse": {},
+      "isDeleted": false,
+      "deletedAt": null,
+      "createdAt": "2026-01-05T10:30:00.000Z",
+      "updatedAt": "2026-01-05T10:30:00.000Z",
+      "user": { "id": "usr12345-6789-abcd-ef01-234567890123", "name": "Masad", "email": "masad@example.com", "role": "STUDENT" },
+      "semesterEnrollment": {
+        "id": "clm1abc2defg3456789000000",
+        "semesterId": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111",
+        "totalCredits": 6,
+        "totalFee": 24000
+      }
+    }
+  ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "totalPages": 1,
+    "summary": {
+      "revenue": 24000,
+      "refunded": 0
+    }
+  }
+}
+```
+
+`meta.summary.revenue` sums `SUCCEEDED` amounts and `meta.summary.refunded` sums `REFUNDED` amounts for the current filters.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 400 | Validation error (invalid query) |
+
+## 2. Get My Payments
+
+```
+GET /api/payments/my?status=&purpose=&semesterId=&startDate=&endDate=&page=&limit=
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+Same query parameters as the admin list, but **no** `studentId` — passing it returns a 403. Results are scoped to the authenticated student and each payment includes `user` and `semesterEnrollment`.
+
+## 3. Get Payment by ID
+
+```
+GET /api/payments/:id
+```
+
+### Auth & Roles
+
+`STUDENT` · `ADMIN` · `SUPER_ADMIN`
+
+Returns the payment with `user` and `semesterEnrollment` included.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Payment not found"` |
+| 403 | `"You are not allowed to view this payment"` |
+
+## Payment Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | GET | `/api/payments` | ADMIN, SUPER_ADMIN | List all payments + revenue summary |
+| 2 | GET | `/api/payments/my` | STUDENT | List my payments |
+| 3 | GET | `/api/payments/:id` | STUDENT, ADMIN, SUPER_ADMIN | Get payment by ID |
+
+---
+
+# EduSphere — Exam Module API Documentation
+
+> **Base URL:** `http://localhost:8000/api/exams`  
+> **Content-Type:** `application/json`
+
+An `Exam` belongs to a `CourseSection`. `ADMIN`, `SUPER_ADMIN` and `INSTRUCTOR` can manage exams; instructors are automatically scoped to their own sections.
+
+## 1. Create Exam
+
+```
+POST /api/exams
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Request Body
+
+| Field            | Type   | Required | Rules |
+|------------------|--------|----------|-------|
+| `courseSectionId`| string | Yes      | Existing course section |
+| `type`           | string | Yes      | `MIDTERM`, `FINAL`, `QUIZ`, `ASSIGNMENT` |
+| `date`           | string | Yes      | ISO date (`YYYY-MM-DDTHH:mm:ss.sssZ`) |
+| `totalMarks`     | number | Yes      | Positive integer |
+
+### Demo Input
+
+```json
+{
+  "courseSectionId": "sec11111-2222-3333-4444-555555555555",
+  "type": "MIDTERM",
+  "date": "2026-04-15T10:00:00.000Z",
+  "totalMarks": 30
+}
+```
+
+### Response (201 Created)
+
+Returns the created exam including `courseSection` (→ `course`, `semester`, `instructor.user`).
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 403 | `"You are not assigned to this course section"` (instructor, wrong section) |
+| 404 | `"Course section not found"` |
+| 400 | Validation error |
+
+## 2. List Exams
+
+```
+GET /api/exams?courseSectionId=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Query Parameters
+
+| Field            | Type   | Required | Rules |
+|------------------|--------|----------|-------|
+| `courseSectionId`| string | No       | Filter by section |
+| `page`           | number | No       | Default 1 |
+| `limit`          | number | No       | Default 10, max 100 |
+
+Instructors see only exams of their own sections unless a `courseSectionId` they are assigned to is given. Exams are ordered by `date` descending.
+
+## 3. Get Exam by ID
+
+```
+GET /api/exams/:id
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Exam not found"` |
+| 403 | `"You are not assigned to this course section"` |
+
+## 4. Update Exam
+
+```
+PATCH /api/exams/:id
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Request Body
+
+At least one of:
+
+| Field        | Type   | Required | Rules |
+|--------------|--------|----------|-------|
+| `type`       | string | No       | `MIDTERM`, `FINAL`, `QUIZ`, `ASSIGNMENT` |
+| `date`       | string | No       | ISO date |
+| `totalMarks` | number | No       | Positive integer |
+
+### Demo Input
+
+```json
+{
+  "totalMarks": 40,
+  "date": "2026-04-16T10:00:00.000Z"
+}
+```
+
+Returns the updated exam (200 OK).
+
+## 5. Delete Exam
+
+```
+DELETE /api/exams/:id
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+Permanently deletes the exam and its results (cascade). Message: `"Exam deleted successfully"`.
+
+## 6. Get Exam Results
+
+```
+GET /api/exams/:id/results
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+Returns all `Result` rows for the exam, ordered by `marksObtained` descending. Each row includes the `student` with `studentId`, `user.name`, `user.email`, `user.imageURL`, plus `marksObtained`, `grade`, `gradePoint`.
+
+## Exam Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/exams` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Create exam |
+| 2 | GET | `/api/exams` | ADMIN, SUPER_ADMIN, INSTRUCTOR | List exams |
+| 3 | GET | `/api/exams/:id` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Get exam by ID |
+| 4 | PATCH | `/api/exams/:id` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Update exam |
+| 5 | DELETE | `/api/exams/:id` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Delete exam |
+| 6 | GET | `/api/exams/:id/results` | ADMIN, SUPER_ADMIN, INSTRUCTOR | List results for an exam |
+
+---
+
+# EduSphere — Attendance Module API Documentation
+
+> **Base URL:** `http://localhost:8000/api/attendance`  
+> **Content-Type:** `application/json`
+
+## 1. Mark Attendance
+
+```
+POST /api/attendance
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Request Body
+
+| Field            | Type   | Required | Rules |
+|------------------|--------|----------|-------|
+| `courseSectionId`| string | Yes      | Existing course section |
+| `date`           | string | Yes      | ISO date |
+| `records`        | array  | Yes      | At least 1 record |
+
+Each `records` item:
+
+| Field       | Type   | Required | Rules |
+|-------------|--------|----------|-------|
+| `studentId` | string | Yes      | Must be enrolled in the section |
+| `status`    | string | Yes      | `PRESENT`, `ABSENT`, `LATE`, `EXCUSED` |
+
+### Demo Input
+
+```json
+{
+  "courseSectionId": "sec11111-2222-3333-4444-555555555555",
+  "date": "2026-03-01T00:00:00.000Z",
+  "records": [
+    { "studentId": "st1abc2defg345678900000000", "status": "PRESENT" },
+    { "studentId": "st2abc2defg345678900000000", "status": "ABSENT" }
+  ]
+}
+```
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Attendance marked successfully",
+  "data": {
+    "count": 2,
+    "date": "2026-03-01T00:00:00.000Z"
+  }
+}
+```
+
+Records are upserted per `(studentId, courseSectionId, date)` — re-posting overwrites the status.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 400 | `"Attendance can only be marked for students enrolled in this section. Invalid: <ids>"` |
+| 403 | Instructor not assigned to the section |
+| 400 | Validation error |
+
+## 2. Get Attendance
+
+```
+GET /api/attendance?courseSectionId=&date=
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Query Parameters
+
+| Field            | Type   | Required | Rules |
+|------------------|--------|----------|-------|
+| `courseSectionId`| string | Yes      | Existing course section |
+| `date`           | string | No       | `YYYY-MM-DD`; omit for all dates |
+
+### Response (200 OK)
+
+Array of attendance records ordered by `date` ascending. Each record includes the `student` (`studentId`, `user.name`, `user.email`, `user.imageURL`) and `courseSection` (→ `course`, `semester`).
+
+## Attendance Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/attendance` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Mark/update attendance |
+| 2 | GET | `/api/attendance` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Fetch attendance records |
+
+---
+
+# EduSphere — Result Module API Documentation
+
+> **Base URL:** `http://localhost:8000/api/results`  
+> **Content-Type:** `application/json`
+
+Marks are converted to a grade letter + grade point automatically (see the grade scale in **Get My Grades**). When a student has a result for **every** exam in a section, their registration is auto-completed (`ENROLLED` → `COMPLETED`) and a system notification is sent.
+
+## 1. Enter Results
+
+```
+POST /api/results
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Request Body
+
+| Field    | Type   | Required | Rules |
+|----------|--------|----------|-------|
+| `examId` | string | Yes      | Existing exam |
+| `records`| array  | Yes      | At least 1 record |
+
+Each `records` item:
+
+| Field          | Type   | Required | Rules |
+|----------------|--------|----------|-------|
+| `studentId`    | string | Yes      | Must be enrolled in the exam's section |
+| `marksObtained`| number | Yes      | `0 <= marksObtained <= exam.totalMarks` |
+
+### Demo Input
+
+```json
+{
+  "examId": "exm12345-6789-abcd-ef01-234567890123",
+  "records": [
+    { "studentId": "st1abc2defg345678900000000", "marksObtained": 27 },
+    { "studentId": "st2abc2defg345678900000000", "marksObtained": 23 }
+  ]
+}
+```
+
+### Response (201 Created)
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Results entered successfully",
+  "data": [
+    {
+      "id": "res12345-6789-abcd-ef01-234567890123",
+      "examId": "exm12345-6789-abcd-ef01-234567890123",
+      "studentId": "st1abc2defg345678900000000",
+      "marksObtained": 27,
+      "grade": "A",
+      "gradePoint": 4.0,
+      "createdAt": "2026-04-17T10:00:00.000Z",
+      "updatedAt": "2026-04-17T10:00:00.000Z",
+      "student": {
+        "studentId": "STU-2023-0001",
+        "user": { "name": "Masad", "email": "masad@example.com", "imageURL": null }
+      }
+    }
+  ]
+}
+```
+
+Results are upserted per `(examId, studentId)` — re-posting recalculates the grade.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Exam not found"` |
+| 400 | `"Marks cannot exceed the exam total of N"` |
+| 400 | `"Results can only be entered for students enrolled in this section. Invalid: <ids>"` |
+| 403 | Instructor not assigned to the section |
+
+## 2. Update a Result
+
+```
+PATCH /api/results/:resultId
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Request Body
+
+| Field          | Type   | Required | Rules |
+|----------------|--------|----------|-------|
+| `marksObtained`| number | Yes      | `0 <= marksObtained <= exam.totalMarks` |
+
+Grade and grade point are recomputed. Response: `"Result updated successfully"`.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"Result not found"` |
+| 400 | `"Marks cannot exceed the exam total of N"` |
+| 403 | Instructor not assigned to the section |
+
+## 3. Get Results
+
+```
+GET /api/results?examId=&courseSectionId=&studentId=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN` · `SUPER_ADMIN` · `INSTRUCTOR`
+
+### Query Parameters
+
+At least one of `examId`, `courseSectionId`, or `studentId` is required.
+
+| Field            | Type   | Required | Rules |
+|------------------|--------|----------|-------|
+| `examId`         | string | No       | Filter by exam |
+| `courseSectionId`| string | No       | Filter by section |
+| `studentId`      | string | No       | Filter by student |
+| `page`           | number | No       | Default 1 |
+| `limit`          | number | No       | Default 10, max 100 |
+
+Instructors must scope by `examId` or `courseSectionId` when filtering by `studentId`. Each row includes `student` and `exam` (→ `courseSection` → `course`, `semester`). Ordered by `marksObtained` descending.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 400 | `"Provide examId, courseSectionId, or studentId to filter results"` |
+| 403 | `"Instructors must scope student results by examId or courseSectionId"` |
+
+## Result Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | POST | `/api/results` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Enter/upsert results |
+| 2 | PATCH | `/api/results/:resultId` | ADMIN, SUPER_ADMIN, INSTRUCTOR | Update a result |
+| 3 | GET | `/api/results` | ADMIN, SUPER_ADMIN, INSTRUCTOR | List results with filters |
+
+---
+
+# EduSphere — Analytics Module API Documentation
+
+> **Base URL:** `http://localhost:8000/api/analytics`  
+> **Content-Type:** `application/json`
+
+Dashboard aggregates per role. All three share the same optional query parameters.
+
+### Query Parameters
+
+| Field        | Type   | Required | Rules |
+|--------------|--------|----------|-------|
+| `semesterId` | string | No       | Scope to a semester |
+| `startDate`  | string | No       | ISO date (inclusive, `gte`) |
+| `endDate`    | string | No       | ISO date (inclusive, `lte`); must be after `startDate` |
+
+## 1. Admin Analytics
+
+```
+GET /api/analytics/admin?semesterId=&startDate=&endDate=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Admin analytics fetched successfully",
+  "data": {
+    "users": { "totalStudents": 120, "totalInstructors": 15 },
+    "applications": {
+      "student": { "total": 130, "pending": 5, "approved": 120, "rejected": 5 },
+      "instructor": { "total": 17, "pending": 2, "approved": 15, "rejected": 0 }
+    },
+    "academics": {
+      "departments": 4,
+      "programs": 8,
+      "courses": 32,
+      "semesters": 6,
+      "activeSemesters": 1
+    },
+    "enrollments": {
+      "courseSections": 40,
+      "semesterEnrollments": 118,
+      "enrolledEnrollments": 115,
+      "courseRegistrations": 340,
+      "enrolledRegistrations": 330,
+      "completedRegistrations": 10
+    },
+    "assessment": {
+      "exams": 150,
+      "results": 1400,
+      "attendanceRecords": 3000,
+      "presentRecords": 2550,
+      "attendanceRate": 85
+    },
+    "finance": { "totalRevenue": 2800000, "totalRefunded": 12000, "netRevenue": 2788000 }
+  }
+}
+```
+
+## 2. Student Analytics
+
+```
+GET /api/analytics/student?semesterId=&startDate=&endDate=
+```
+
+### Auth & Roles
+
+`STUDENT`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Student analytics fetched successfully",
+  "data": {
+    "academic": {
+      "cgpa": 3.75,
+      "totalCreditsCompleted": 60,
+      "completedCourses": 20,
+      "coursesInProgress": 4,
+      "inProgressCredits": 12,
+      "totalExamsTaken": 58,
+      "totalExamsAvailable": 60,
+      "completionRate": 97
+    },
+    "attendance": { "totalClasses": 120, "attendedClasses": 108, "attendancePercentage": 90 },
+    "grades": { "gradeBreakdown": { "A": 12, "A-": 4, "B+": 2, "B": 2 } },
+    "finance": { "totalAmountSpent": 120000, "totalRefunded": 0 }
+  }
+}
+```
+
+## 3. Instructor Analytics
+
+```
+GET /api/analytics/instructor?semesterId=&startDate=&endDate=
+```
+
+### Auth & Roles
+
+`INSTRUCTOR`
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Instructor analytics fetched successfully",
+  "data": {
+    "sections": { "totalSections": 3, "totalCoursesTaught": 2, "totalCapacity": 120, "seatsFilled": 108, "fillRate": 90 },
+    "students": { "totalStudentsEnrolled": 90 },
+    "exams": { "totalExams": 12, "upcomingExams": 2, "pendingGrading": 3 },
+    "attendance": { "totalRecords": 900, "presentRecords": 765, "attendanceRate": 85 },
+    "grading": { "totalGradeEntries": 900 }
+  }
+}
+```
+
+## Analytics Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | GET | `/api/analytics/admin` | ADMIN, SUPER_ADMIN | Institutional dashboard aggregates |
+| 2 | GET | `/api/analytics/student` | STUDENT | Student dashboard aggregates |
+| 3 | GET | `/api/analytics/instructor` | INSTRUCTOR | Instructor dashboard aggregates |
+
+---
+
+# EduSphere — User Management Module API Documentation
+
+> **Base URL:** `http://localhost:8000/api/users`  
+> **Content-Type:** `application/json`
+
+Administrative CRUD over `User` accounts. User responses never include `password`, `resetPasswordToken`, `resetPasswordExpiresAt`, or `passwordChangedAt`.
+
+## 1. List Users
+
+```
+GET /api/users?role=&status=&searchTerm=&page=&limit=
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+### Query Parameters
+
+| Field        | Type   | Required | Rules |
+|--------------|--------|----------|-------|
+| `role`       | string | No       | `STUDENT`, `INSTRUCTOR`, `ADMIN`, `SUPER_ADMIN` |
+| `status`     | string | No       | `ACTIVE`, `BLOCKED`, `DELETED` |
+| `searchTerm` | string | No       | Case-insensitive match on name/email |
+| `page`       | number | No       | Default 1 |
+| `limit`      | number | No       | Default 10, max 100 |
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Users retrieved successfully",
+  "data": [
+    {
+      "id": "usr12345-6789-abcd-ef01-234567890123",
+      "name": "Masad",
+      "email": "masad@example.com",
+      "role": "STUDENT",
+      "status": "ACTIVE",
+      "emailVerified": true,
+      "authProvider": "CREDENTIAL",
+      "needPasswordChange": false,
+      "isDeleted": false,
+      "deletedAt": null,
+      "createdAt": "2026-01-01T09:00:00.000Z",
+      "updatedAt": "2026-01-01T09:00:00.000Z",
+      "studentProfile": {
+        "id": "st1abc2defg345678900000000",
+        "studentId": "STU-2023-0001",
+        "cgpa": 3.75,
+        "currentSemester": { "id": "sm1d2e3f-4a5b-6c7d-8e9f-111111111111", "name": "Fall", "year": 2026 }
+      },
+      "instructorProfile": null,
+      "studentApplication": { "id": "app1...", "status": "APPROVED" },
+      "instructorApplication": null
+    }
+  ],
+  "meta": { "page": 1, "limit": 10, "total": 1, "totalPages": 1 }
+}
+```
+
+## 2. Get User by ID
+
+```
+GET /api/users/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+Same shape as a list row (including the profile sub-resources).
+
+| Status | Message |
+|--------|---------|
+| 404 | `"User not found"` |
+
+## 3. Update User Role (Super Admin)
+
+```
+PATCH /api/users/:id/role
+```
+
+### Auth & Roles
+
+`SUPER_ADMIN` only
+
+### Request Body
+
+| Field  | Type   | Required | Rules |
+|--------|--------|----------|-------|
+| `role` | string | Yes      | `STUDENT`, `INSTRUCTOR`, `ADMIN`, `SUPER_ADMIN` |
+
+### Demo Input
+
+```json
+{
+  "role": "INSTRUCTOR"
+}
+```
+
+### Response (200 OK)
+
+Updated user (sensitive fields omitted). Message: `"User role updated successfully"`.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"User not found"` |
+| 403 | `"You cannot change your own role"` |
+| 409 | `"Cannot demote the last SUPER_ADMIN"` |
+
+## 4. Update User Status
+
+```
+PATCH /api/users/:id/status
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+Sets the account status. Blocking a user logs them out immediately via `checkAuth` (login and requests are rejected with `"Your account is blocked. Please contact the administration."`).
+
+### Request Body
+
+| Field    | Type   | Required | Rules |
+|----------|--------|----------|-------|
+| `status` | string | Yes      | `ACTIVE`, `BLOCKED`, `DELETED` |
+
+### Demo Input
+
+```json
+{
+  "status": "BLOCKED"
+}
+```
+
+### Response (200 OK)
+
+Updated user (sensitive fields omitted). Message: `"User status updated successfully"`.
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"User not found"` |
+| 403 | `"You cannot block or unblock yourself"` |
+
+## 5. Delete User (Soft Delete)
+
+```
+DELETE /api/users/:id
+```
+
+### Auth & Roles
+
+`ADMIN`, `SUPER_ADMIN`
+
+Soft-deletes the user: sets `isDeleted: true` and `status: DELETED`. Only a `SUPER_ADMIN` can delete another `SUPER_ADMIN`.
+
+### Response (200 OK)
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "User deleted successfully",
+  "data": {
+    "id": "usr12345-6789-abcd-ef01-234567890123",
+    "name": "Masad",
+    "email": "masad@example.com",
+    "role": "STUDENT",
+    "status": "DELETED",
+    "isDeleted": true,
+    "deletedAt": "2026-05-01T10:00:00.000Z"
+  }
+}
+```
+
+### Errors
+
+| Status | Message |
+|--------|---------|
+| 404 | `"User not found"` |
+| 403 | `"You cannot delete yourself"` |
+| 403 | `"Only a SUPER_ADMIN can delete another SUPER_ADMIN"` |
+
+## User Management Module — Route Summary
+
+| # | Method | Route | Auth | Description |
+|---|--------|-------|------|-------------|
+| 1 | GET | `/api/users` | ADMIN, SUPER_ADMIN | List/filter users |
+| 2 | GET | `/api/users/:id` | ADMIN, SUPER_ADMIN | Get user by ID |
+| 3 | PATCH | `/api/users/:id/role` | SUPER_ADMIN | Change a user's role |
+| 4 | PATCH | `/api/users/:id/status` | ADMIN, SUPER_ADMIN | Block/unblock/delete a user |
+| 5 | DELETE | `/api/users/:id` | ADMIN, SUPER_ADMIN | Soft-delete a user |
+
+---
+
+# Appendix — Global Error Responses
+
+All endpoints that go through the `auth` middleware can return the following when no valid session is provided:
+
+| Status | Message |
+|--------|---------|
+| 500 | `"You are not logged in. Please log in to access this resource."` |
+| 500 | `"Forbidden. You don't have permission to access this resource."` |
+| 500 | `"Your account is blocked. Please contact the administration."` |
+| 500 | `"User is deleted. Please contact support."` |
+| 500 | `"User credentials mismatch. Please log in again."` |
+
+> These middleware failures are thrown as generic `Error`s, so the global handler reports them as **500 Internal Server Error** and only exposes the exact message in development mode. A `GET /` root route returns `{ success: true, message: "Welcome to EduSphere Backend" }`.

@@ -341,178 +341,188 @@
       "name": "Departments",
       "item": [
         {
-          "name": "Create Department",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res && res.data && res.data.id) {",
-                  "    pm.collectionVariables.set('departmentId', res.data.id);",
-                  "}"
+              "name": "Create Department",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.id) {",
+                      "    pm.collectionVariables.set('departmentId', res.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Computer Science\",\n  \"code\": \"CSE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/departments",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "departments"
+                  ]
+                },
+                "description": "Creates a department. Roles: ADMIN, SUPER_ADMIN. Saves the new id to `departmentId`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Department",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Computer Science & Engineering\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/departments/{{departmentId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "departments",
+                    "{{departmentId}}"
+                  ]
+                },
+                "description": "Updates a department. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Department",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/departments/{{departmentId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "departments",
+                    "{{departmentId}}"
+                  ]
+                },
+                "description": "Soft-deletes a department. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Computer Science\",\n  \"code\": \"CSE\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/departments",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "departments"
-              ]
-            },
-            "description": "Creates a department. Roles: ADMIN, SUPER_ADMIN. Saves the new id to `departmentId`."
-          },
-          "response": []
+          ]
         },
         {
-          "name": "List Departments",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/departments?searchTerm=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "departments"
-              ],
-              "query": [
-                {
-                  "key": "searchTerm",
-                  "value": ""
+          "name": "General",
+          "item": [
+            {
+              "name": "List Departments",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/departments?searchTerm=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "departments"
+                  ],
+                  "query": [
+                    {
+                      "key": "searchTerm",
+                      "value": ""
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
                 },
-                {
-                  "key": "page",
-                  "value": "1"
+                "description": "Lists departments (soft-deleted excluded) with search and pagination. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Department by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/departments/{{departmentId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "departments",
+                    "{{departmentId}}"
+                  ]
                 },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            },
-            "description": "Lists departments (soft-deleted excluded) with search and pagination. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Department by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/departments/{{departmentId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "departments",
-                "{{departmentId}}"
-              ]
-            },
-            "description": "Returns a single department. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Department",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Computer Science & Engineering\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/departments/{{departmentId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "departments",
-                "{{departmentId}}"
-              ]
-            },
-            "description": "Updates a department. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Department",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/departments/{{departmentId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "departments",
-                "{{departmentId}}"
-              ]
-            },
-            "description": "Soft-deletes a department. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
+                "description": "Returns a single department. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -520,182 +530,192 @@
       "name": "Programs",
       "item": [
         {
-          "name": "Create Program",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res && res.data && res.data.id) {",
-                  "    pm.collectionVariables.set('programId', res.data.id);",
-                  "}"
+              "name": "Create Program",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.id) {",
+                      "    pm.collectionVariables.set('programId', res.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"B.Sc in Computer Science\",\n  \"degreeType\": \"Bachelor's\",\n  \"totalCredits\": 140,\n  \"departmentId\": \"{{departmentId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/programs",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "programs"
+                  ]
+                },
+                "description": "Creates a program under a department. Roles: ADMIN, SUPER_ADMIN. Saves the new id to `programId`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Program",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"totalCredits\": 144\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/programs/{{programId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "programs",
+                    "{{programId}}"
+                  ]
+                },
+                "description": "Updates a program. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Program",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/programs/{{programId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "programs",
+                    "{{programId}}"
+                  ]
+                },
+                "description": "Soft-deletes a program. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"B.Sc in Computer Science\",\n  \"degreeType\": \"Bachelor's\",\n  \"totalCredits\": 140,\n  \"departmentId\": \"{{departmentId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/programs",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "programs"
-              ]
-            },
-            "description": "Creates a program under a department. Roles: ADMIN, SUPER_ADMIN. Saves the new id to `programId`."
-          },
-          "response": []
+          ]
         },
         {
-          "name": "List Programs",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/programs?departmentId=&searchTerm=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "programs"
-              ],
-              "query": [
-                {
-                  "key": "departmentId",
-                  "value": ""
+          "name": "General",
+          "item": [
+            {
+              "name": "List Programs",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/programs?departmentId=&searchTerm=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "programs"
+                  ],
+                  "query": [
+                    {
+                      "key": "departmentId",
+                      "value": ""
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": ""
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
                 },
-                {
-                  "key": "searchTerm",
-                  "value": ""
+                "description": "Lists programs (soft-deleted excluded) with department filter, search, and pagination. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Program by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/programs/{{programId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "programs",
+                    "{{programId}}"
+                  ]
                 },
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            },
-            "description": "Lists programs (soft-deleted excluded) with department filter, search, and pagination. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Program by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/programs/{{programId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "programs",
-                "{{programId}}"
-              ]
-            },
-            "description": "Returns a single program (with department). Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Program",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"totalCredits\": 144\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/programs/{{programId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "programs",
-                "{{programId}}"
-              ]
-            },
-            "description": "Updates a program. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Program",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/programs/{{programId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "programs",
-                "{{programId}}"
-              ]
-            },
-            "description": "Soft-deletes a program. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
+                "description": "Returns a single program (with department). Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -1311,182 +1331,192 @@
       "name": "Courses",
       "item": [
         {
-          "name": "Create Course",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res && res.data && res.data.id) {",
-                  "    pm.collectionVariables.set('courseId', res.data.id);",
-                  "}"
+              "name": "Create Course",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.id) {",
+                      "    pm.collectionVariables.set('courseId', res.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"CSE201\",\n  \"title\": \"Data Structures\",\n  \"creditHours\": 3,\n  \"departmentId\": \"{{departmentId}}\",\n  \"prerequisiteIds\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/courses",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses"
+                  ]
+                },
+                "description": "Creates a course (optionally with prerequisites). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `courseId`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Course",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Data Structures and Algorithms\",\n  \"creditHours\": 4\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/courses/{{courseId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}"
+                  ]
+                },
+                "description": "Updates a course; `prerequisiteIds` replaces the prerequisite set. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Course",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/courses/{{courseId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}"
+                  ]
+                },
+                "description": "Hard-deletes a course (cascades course sections + prerequisites). Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"code\": \"CSE201\",\n  \"title\": \"Data Structures\",\n  \"creditHours\": 3,\n  \"departmentId\": \"{{departmentId}}\",\n  \"prerequisiteIds\": []\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/courses",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "courses"
-              ]
-            },
-            "description": "Creates a course (optionally with prerequisites). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `courseId`."
-          },
-          "response": []
+          ]
         },
         {
-          "name": "List Courses",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/courses?departmentId=&searchTerm=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "courses"
-              ],
-              "query": [
-                {
-                  "key": "departmentId",
-                  "value": ""
+          "name": "General",
+          "item": [
+            {
+              "name": "List Courses",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/courses?departmentId=&searchTerm=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses"
+                  ],
+                  "query": [
+                    {
+                      "key": "departmentId",
+                      "value": ""
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": ""
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
                 },
-                {
-                  "key": "searchTerm",
-                  "value": ""
+                "description": "Lists courses with department and prerequisites. Roles: any authenticated."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Course by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/courses/{{courseId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{courseId}}"
+                  ]
                 },
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            },
-            "description": "Lists courses with department and prerequisites. Roles: any authenticated."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Course by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/courses/{{courseId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "courses",
-                "{{courseId}}"
-              ]
-            },
-            "description": "Fetches a course by id. Roles: any authenticated."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Course",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Data Structures and Algorithms\",\n  \"creditHours\": 4\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/courses/{{courseId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "courses",
-                "{{courseId}}"
-              ]
-            },
-            "description": "Updates a course; `prerequisiteIds` replaces the prerequisite set. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Course",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/courses/{{courseId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "courses",
-                "{{courseId}}"
-              ]
-            },
-            "description": "Hard-deletes a course (cascades course sections + prerequisites). Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
+                "description": "Fetches a course by id. Roles: any authenticated."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -1494,186 +1524,196 @@
       "name": "Semesters",
       "item": [
         {
-          "name": "Create Semester",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res && res.data && res.data.id) {",
-                  "    pm.collectionVariables.set('semesterId', res.data.id);",
-                  "}"
+              "name": "Create Semester",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.id) {",
+                      "    pm.collectionVariables.set('semesterId', res.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Fall\",\n  \"year\": 2026,\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-12-31\",\n  \"registrationDeadline\": \"2026-10-15\",\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/semesters",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "semesters"
+                  ]
+                },
+                "description": "Creates a semester (setting isActive deactivates all others; registrationDeadline closes course enrollment). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `semesterId`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Semester",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"isActive\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "semesters",
+                    "{{semesterId}}"
+                  ]
+                },
+                "description": "Updates a semester. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Semester",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "semesters",
+                    "{{semesterId}}"
+                  ]
+                },
+                "description": "Deletes a semester; blocked (409) if course sections exist. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Fall\",\n  \"year\": 2026,\n  \"startDate\": \"2026-09-01\",\n  \"endDate\": \"2026-12-31\",\n  \"registrationDeadline\": \"2026-10-15\",\n  \"isActive\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/semesters",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "semesters"
-              ]
-            },
-            "description": "Creates a semester (setting isActive deactivates all others; registrationDeadline closes course enrollment). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `semesterId`."
-          },
-          "response": []
+          ]
         },
         {
-          "name": "List Semesters",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/semesters?year=&isActive=&searchTerm=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "semesters"
-              ],
-              "query": [
-                {
-                  "key": "year",
-                  "value": ""
+          "name": "General",
+          "item": [
+            {
+              "name": "List Semesters",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/semesters?year=&isActive=&searchTerm=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "semesters"
+                  ],
+                  "query": [
+                    {
+                      "key": "year",
+                      "value": ""
+                    },
+                    {
+                      "key": "isActive",
+                      "value": ""
+                    },
+                    {
+                      "key": "searchTerm",
+                      "value": ""
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
                 },
-                {
-                  "key": "isActive",
-                  "value": ""
+                "description": "Lists semesters with section/student counts. Roles: any authenticated."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Semester by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "semesters",
+                    "{{semesterId}}"
+                  ]
                 },
-                {
-                  "key": "searchTerm",
-                  "value": ""
-                },
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            },
-            "description": "Lists semesters with section/student counts. Roles: any authenticated."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Semester by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "semesters",
-                "{{semesterId}}"
-              ]
-            },
-            "description": "Fetches a semester by id. Roles: any authenticated."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Semester",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"isActive\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "semesters",
-                "{{semesterId}}"
-              ]
-            },
-            "description": "Updates a semester. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Semester",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/semesters/{{semesterId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "semesters",
-                "{{semesterId}}"
-              ]
-            },
-            "description": "Deletes a semester; blocked (409) if course sections exist. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
+                "description": "Fetches a semester by id. Roles: any authenticated."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -1681,222 +1721,232 @@
       "name": "Course Sections",
       "item": [
         {
-          "name": "Create Course Section",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res && res.data && res.data.id) {",
-                  "    pm.collectionVariables.set('sectionId', res.data.id);",
-                  "}"
+              "name": "Create Course Section",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.id) {",
+                      "    pm.collectionVariables.set('sectionId', res.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"sectionCode\": \"A\",\n  \"instructorId\": \"{{instructorId}}\",\n  \"capacity\": 40,\n  \"schedule\": \"Sun/Tue 10:00-11:30\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/course-sections",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-sections"
+                  ]
+                },
+                "description": "Creates a course section for a course + semester (optional instructor). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `sectionId`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Course Section",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"capacity\": 45,\n  \"schedule\": \"Sun/Tue 12:00-13:30\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-sections",
+                    "{{sectionId}}"
+                  ]
+                },
+                "description": "Updates sectionCode/instructorId/capacity/schedule (course and semester are immutable). Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Assign Instructor",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"instructorId\": \"{{instructorId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/course-sections/{{sectionId}}/assign-instructor",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-sections",
+                    "{{sectionId}}",
+                    "assign-instructor"
+                  ]
+                },
+                "description": "Assigns an instructor to a course section. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Course Section",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-sections",
+                    "{{sectionId}}"
+                  ]
+                },
+                "description": "Hard-deletes a course section (cascades registrations/attendance/exams/results). Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"semesterId\": \"{{semesterId}}\",\n  \"sectionCode\": \"A\",\n  \"instructorId\": \"{{instructorId}}\",\n  \"capacity\": 40,\n  \"schedule\": \"Sun/Tue 10:00-11:30\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/course-sections",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-sections"
-              ]
-            },
-            "description": "Creates a course section for a course + semester (optional instructor). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `sectionId`."
-          },
-          "response": []
+          ]
         },
         {
-          "name": "List Course Sections",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/course-sections?courseId=&semesterId=&instructorId=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-sections"
-              ],
-              "query": [
-                {
-                  "key": "courseId",
-                  "value": ""
+          "name": "General",
+          "item": [
+            {
+              "name": "List Course Sections",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/course-sections?courseId=&semesterId=&instructorId=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-sections"
+                  ],
+                  "query": [
+                    {
+                      "key": "courseId",
+                      "value": ""
+                    },
+                    {
+                      "key": "semesterId",
+                      "value": ""
+                    },
+                    {
+                      "key": "instructorId",
+                      "value": ""
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
                 },
-                {
-                  "key": "semesterId",
-                  "value": ""
+                "description": "Lists course sections with course, semester, and instructor. Roles: any authenticated."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Course Section by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-sections",
+                    "{{sectionId}}"
+                  ]
                 },
-                {
-                  "key": "instructorId",
-                  "value": ""
-                },
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            },
-            "description": "Lists course sections with course, semester, and instructor. Roles: any authenticated."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Course Section by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-sections",
-                "{{sectionId}}"
-              ]
-            },
-            "description": "Fetches a course section by id. Roles: any authenticated."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Course Section",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"capacity\": 45,\n  \"schedule\": \"Sun/Tue 12:00-13:30\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-sections",
-                "{{sectionId}}"
-              ]
-            },
-            "description": "Updates sectionCode/instructorId/capacity/schedule (course and semester are immutable). Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Assign Instructor",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"instructorId\": \"{{instructorId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/course-sections/{{sectionId}}/assign-instructor",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-sections",
-                "{{sectionId}}",
-                "assign-instructor"
-              ]
-            },
-            "description": "Assigns an instructor to a course section. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Course Section",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/course-sections/{{sectionId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-sections",
-                "{{sectionId}}"
-              ]
-            },
-            "description": "Hard-deletes a course section (cascades registrations/attendance/exams/results). Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
+                "description": "Fetches a course section by id. Roles: any authenticated."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -1904,262 +1954,272 @@
       "name": "Course Registrations",
       "item": [
         {
-          "name": "Enroll Semester & Pay via bKash",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res && res.data && res.data.enrollmentId) {",
-                  "    pm.collectionVariables.set('courseRegistrationId', res.data.enrollmentId);",
-                  "}"
+              "name": "List All Enrollments",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "url": {
+                  "raw": "{{baseURL}}/api/course-registrations?status=&semesterId=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-registrations"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "PENDING | ENROLLED | CANCELLED"
+                    },
+                    {
+                      "key": "semesterId",
+                      "value": ""
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                },
+                "description": "Lists all semester enrollments, optionally filtered by status/semester. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Registration Status (Admin Override)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"COMPLETED\"\n}\n\n// Allowed: \"ENROLLED\" | \"COMPLETED\" | \"CANCELLED\"",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/course-registrations/{{courseRegistrationId}}/status",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-registrations",
+                    "{{courseRegistrationId}}",
+                    "status"
+                  ]
+                }
+              },
+              "description": "Admin-only manual override of a single course registration's status. Use this to mark a course COMPLETED when it has no exams (auto-complete has nothing to grade). Allowed statuses: ENROLLED, COMPLETED, CANCELLED.",
+              "response": []
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"courseIds\": [\n    \"{{courseId}}\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+          ]
+        },
+        {
+          "name": "General",
+          "item": [
+            {
+              "name": "Enroll Semester & Pay via bKash",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.enrollmentId) {",
+                      "    pm.collectionVariables.set('courseRegistrationId', res.data.enrollmentId);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
                 }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/course-registrations/enroll",
-              "host": [
-                "{{baseURL}}"
               ],
-              "path": [
-                "api",
-                "course-registrations",
-                "enroll"
-              ]
-            },
-            "description": "Starts a semester enrollment: creates a PENDING SemesterEnrollment + PENDING registrations for each `courseSectionId` + ONE PENDING payment for the whole semester, then bKash create-payment. Fee = total credits x `credit_fee_rate` (2000/credit); total credits are capped at 25 per semester (hard block). All sections must belong to the same upcoming semester. Returns `paymentUrl` (bKash checkout page). Role: STUDENT. Saves the new id to `courseRegistrationId`."
-          },
-          "response": []
-        },
-        {
-          "name": "bKash Payment Callback",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseURL}}/api/course-registrations/bkash/callback?paymentID={{paymentID}}&status=success",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-registrations",
-                "bkash",
-                "callback"
-              ],
-              "query": [
-                {
-                  "key": "paymentID",
-                  "value": "{{paymentID}}"
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseIds\": [\n    \"{{courseId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 },
-                {
-                  "key": "status",
-                  "value": "success"
-                }
-              ]
-            },
-            "description": "Public bKash redirect callback (no auth). On `status=success` it executes the payment (sets payment SUCCEEDED + enrollment ENROLLED + all its registrations ENROLLED) and emails the itemized PDF invoice; on any other status it marks FAILED + CANCELLED. Redirects to the frontend with the result."
-          },
-          "response": []
-        },
-        {
-          "name": "My Enrollments",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/course-registrations/my?status=&semesterId=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-registrations",
-                "my"
-              ],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "",
-                  "description": "PENDING | ENROLLED | CANCELLED"
+                "url": {
+                  "raw": "{{baseURL}}/api/course-registrations/enroll",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-registrations",
+                    "enroll"
+                  ]
                 },
-                {
-                  "key": "semesterId",
-                  "value": ""
-                },
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
+                "description": "Starts a semester enrollment: creates a PENDING SemesterEnrollment + PENDING registrations for each `courseSectionId` + ONE PENDING payment for the whole semester, then bKash create-payment. Fee = total credits x `credit_fee_rate` (2000/credit); total credits are capped at 25 per semester (hard block). All sections must belong to the same upcoming semester. Returns `paymentUrl` (bKash checkout page). Role: STUDENT. Saves the new id to `courseRegistrationId`."
+              },
+              "response": []
             },
-            "description": "Lists the authenticated student's semester enrollments (with payment and course-section registrations). Role: STUDENT."
-          },
-          "response": []
-        },
-        {
-          "name": "List All Enrollments",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/course-registrations?status=&semesterId=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-registrations"
-              ],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "",
-                  "description": "PENDING | ENROLLED | CANCELLED"
+            {
+              "name": "bKash Payment Callback",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseURL}}/api/course-registrations/bkash/callback?paymentID={{paymentID}}&status=success",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-registrations",
+                    "bkash",
+                    "callback"
+                  ],
+                  "query": [
+                    {
+                      "key": "paymentID",
+                      "value": "{{paymentID}}"
+                    },
+                    {
+                      "key": "status",
+                      "value": "success"
+                    }
+                  ]
                 },
-                {
-                  "key": "semesterId",
-                  "value": ""
+                "description": "Public bKash redirect callback (no auth). On `status=success` it executes the payment (sets payment SUCCEEDED + enrollment ENROLLED + all its registrations ENROLLED) and emails the itemized PDF invoice; on any other status it marks FAILED + CANCELLED. Redirects to the frontend with the result."
+              },
+              "response": []
+            },
+            {
+              "name": "My Enrollments",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/course-registrations/my?status=&semesterId=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-registrations",
+                    "my"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "",
+                      "description": "PENDING | ENROLLED | CANCELLED"
+                    },
+                    {
+                      "key": "semesterId",
+                      "value": ""
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
                 },
-                {
-                  "key": "page",
-                  "value": "1"
+                "description": "Lists the authenticated student's semester enrollments (with payment and course-section registrations). Role: STUDENT."
+              },
+              "response": []
+            },
+            {
+              "name": "Enrollment Details",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/course-registrations/{{courseRegistrationId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-registrations",
+                    "{{courseRegistrationId}}"
+                  ]
                 },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
+                "description": "Returns a semester enrollment with its payment and course-section registrations (students can only view their own). Roles: STUDENT, ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             },
-            "description": "Lists all semester enrollments, optionally filtered by status/semester. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Enrollment Details",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/course-registrations/{{courseRegistrationId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-registrations",
-                "{{courseRegistrationId}}"
-              ]
-            },
-            "description": "Returns a semester enrollment with its payment and course-section registrations (students can only view their own). Roles: STUDENT, ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Cancel Enrollment & Refund",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/course-registrations/{{courseRegistrationId}}/cancel",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-registrations",
-                "{{courseRegistrationId}}",
-                "cancel"
-              ]
-            },
-            "description": "Cancels an ENROLLED semester enrollment. If paid via bKash and the semester hasn't started (registration window still open), it issues a single refund (payment \u2192 REFUNDED) and sets the enrollment + all its registrations to CANCELLED. Roles: STUDENT (own), ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Registration Status (Admin Override)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"COMPLETED\"\n}\n\n// Allowed: \"ENROLLED\" | \"COMPLETED\" | \"CANCELLED\"",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/course-registrations/{{courseRegistrationId}}/status",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "course-registrations",
-                "{{courseRegistrationId}}",
-                "status"
-              ]
+            {
+              "name": "Cancel Enrollment & Refund",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/course-registrations/{{courseRegistrationId}}/cancel",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "course-registrations",
+                    "{{courseRegistrationId}}",
+                    "cancel"
+                  ]
+                },
+                "description": "Cancels an ENROLLED semester enrollment. If paid via bKash and the semester hasn't started (registration window still open), it issues a single refund (payment \u2192 REFUNDED) and sets the enrollment + all its registrations to CANCELLED. Roles: STUDENT (own), ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             }
-          },
-          "description": "Admin-only manual override of a single course registration's status. Use this to mark a course COMPLETED when it has no exams (auto-complete has nothing to grade). Allowed statuses: ENROLLED, COMPLETED, CANCELLED.",
-          "response": []
+          ]
         }
       ]
     },
@@ -2321,81 +2381,91 @@
       "name": "Payments",
       "item": [
         {
-          "name": "List All Payments",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/payments?status=SUCCEEDED&purpose=&semesterId=&studentId=&startDate=&endDate=&page=&limit=",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "payments?status=SUCCEEDED&purpose=&semesterId=&studentId=&startDate=&endDate=&page=&limit="
-              ]
+          "name": "Admin",
+          "item": [
+            {
+              "name": "List All Payments",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/payments?status=SUCCEEDED&purpose=&semesterId=&studentId=&startDate=&endDate=&page=&limit=",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "payments?status=SUCCEEDED&purpose=&semesterId=&studentId=&startDate=&endDate=&page=&limit="
+                  ]
+                }
+              },
+              "description": "ADMIN/SUPER_ADMIN payment ledger with pagination. meta.summary reports `revenue` (sum of SUCCEEDED) and `refunded` (sum of REFUNDED). Filters: status (PENDING/SUCCEEDED/FAILED/REFUNDED), purpose (TUITION/EXAM_FEE/REGISTRATION_FEE/OTHER), semesterId, studentId, startDate/endDate (YYYY-MM-DD).",
+              "response": []
             }
-          },
-          "description": "ADMIN/SUPER_ADMIN payment ledger with pagination. meta.summary reports `revenue` (sum of SUCCEEDED) and `refunded` (sum of REFUNDED). Filters: status (PENDING/SUCCEEDED/FAILED/REFUNDED), purpose (TUITION/EXAM_FEE/REGISTRATION_FEE/OTHER), semesterId, studentId, startDate/endDate (YYYY-MM-DD).",
-          "response": []
+          ]
         },
         {
-          "name": "My Payments",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/payments/my?status=&purpose=&startDate=&endDate=&page=&limit=",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "payments",
-                "my?status=&purpose=&startDate=&endDate=&page=&limit="
-              ]
+          "name": "General",
+          "item": [
+            {
+              "name": "My Payments",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/payments/my?status=&purpose=&startDate=&endDate=&page=&limit=",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "payments",
+                    "my?status=&purpose=&startDate=&endDate=&page=&limit="
+                  ]
+                }
+              },
+              "description": "Current student's own payments (STUDENT). Same filters and summary as the admin ledger, restricted to your userId.",
+              "response": []
+            },
+            {
+              "name": "Get Payment By ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/payments/{{paymentId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "payments",
+                    "{{paymentId}}"
+                  ]
+                }
+              },
+              "description": "Fetch a single payment. STUDENT can only view their own payment; ADMIN/SUPER_ADMIN can view any.",
+              "response": []
             }
-          },
-          "description": "Current student's own payments (STUDENT). Same filters and summary as the admin ledger, restricted to your userId.",
-          "response": []
-        },
-        {
-          "name": "Get Payment By ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/payments/{{paymentId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "payments",
-                "{{paymentId}}"
-              ]
-            }
-          },
-          "description": "Fetch a single payment. STUDENT can only view their own payment; ADMIN/SUPER_ADMIN can view any.",
-          "response": []
+          ]
         }
       ]
     },
@@ -2790,82 +2860,92 @@
       "name": "Analytics",
       "item": [
         {
-          "name": "Admin Analytics",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
+          "name": "Admin",
+          "item": [
+            {
+              "name": "Admin Analytics",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/analytics/admin?semesterId=&startDate=&endDate=",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "analytics",
+                    "admin?semesterId=&startDate=&endDate="
+                  ]
+                },
+                "description": "Global dashboard: users, applications, academics, enrollments, assessment, and finance (totalRevenue / totalRefunded / netRevenue from tuition payments). Roles: ADMIN, SUPER_ADMIN. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
+                "response": []
               }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/analytics/admin?semesterId=&startDate=&endDate=",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "analytics",
-                "admin?semesterId=&startDate=&endDate="
-              ]
-            },
-            "description": "Global dashboard: users, applications, academics, enrollments, assessment, and finance (totalRevenue / totalRefunded / netRevenue from tuition payments). Roles: ADMIN, SUPER_ADMIN. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
-            "response": []
-          }
+            }
+          ]
         },
         {
-          "name": "Student Analytics",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
+          "name": "General",
+          "item": [
+            {
+              "name": "Student Analytics",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/analytics/student?semesterId=&startDate=&endDate=",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "analytics",
+                    "student?semesterId=&startDate=&endDate="
+                  ]
+                },
+                "description": "Current student's summary: CGPA, credit/completion stats, attendance, exam completion, grade breakdown, and amount spent/refunded. Role: STUDENT. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
+                "response": []
               }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/analytics/student?semesterId=&startDate=&endDate=",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "analytics",
-                "student?semesterId=&startDate=&endDate="
-              ]
             },
-            "description": "Current student's summary: CGPA, credit/completion stats, attendance, exam completion, grade breakdown, and amount spent/refunded. Role: STUDENT. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
-            "response": []
-          }
-        },
-        {
-          "name": "Instructor Analytics",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
+            {
+              "name": "Instructor Analytics",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/analytics/instructor?semesterId=&startDate=&endDate=",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "analytics",
+                    "instructor?semesterId=&startDate=&endDate="
+                  ]
+                },
+                "description": "Assigned instructor's summary: sections, courses, students, capacity/fill rate, exams (incl. pending grading), attendance, and grade entries. Role: INSTRUCTOR. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
+                "response": []
               }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/analytics/instructor?semesterId=&startDate=&endDate=",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "analytics",
-                "instructor?semesterId=&startDate=&endDate="
-              ]
-            },
-            "description": "Assigned instructor's summary: sections, courses, students, capacity/fill rate, exams (incl. pending grading), attendance, and grade entries. Role: INSTRUCTOR. Optional query filters: `semesterId`, `startDate`, `endDate` (YYYY-MM-DD).",
-            "response": []
-          }
+            }
+          ]
         }
       ]
     },
@@ -2873,182 +2953,192 @@
       "name": "Student Sections",
       "item": [
         {
-          "name": "Create Student Section",
-          "event": [
+          "name": "Admin",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res && res.data && res.data.id) {",
-                  "    pm.collectionVariables.set('studentSectionId', res.data.id);",
-                  "}"
+              "name": "Create Student Section",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "const res = pm.response.json();",
+                      "if (res && res.data && res.data.id) {",
+                      "    pm.collectionVariables.set('studentSectionId', res.data.id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
                 ],
-                "type": "text/javascript"
-              }
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sectionCode\": \"A\",\n  \"programId\": \"{{programId}}\",\n  \"enrollmentYear\": 2026,\n  \"capacity\": 40\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/student-sections",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "student-sections"
+                  ]
+                },
+                "description": "Creates a student's fixed academic section (program + enrollment year + code). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `studentSectionId`."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Student Section",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"capacity\": 40\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "student-sections",
+                    "{{studentSectionId}}"
+                  ]
+                },
+                "description": "Updates sectionCode/capacity (program + year immutable; capacity can't drop below enrolled). Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Student Section",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "student-sections",
+                    "{{studentSectionId}}"
+                  ]
+                },
+                "description": "Hard-deletes a student section; 409 if students are assigned. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"sectionCode\": \"A\",\n  \"programId\": \"{{programId}}\",\n  \"enrollmentYear\": 2026,\n  \"capacity\": 40\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/student-sections",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "student-sections"
-              ]
-            },
-            "description": "Creates a student's fixed academic section (program + enrollment year + code). Roles: ADMIN, SUPER_ADMIN. Saves the new id to `studentSectionId`."
-          },
-          "response": []
+          ]
         },
         {
-          "name": "List Student Sections",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/student-sections?programId=&enrollmentYear=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "student-sections"
-              ],
-              "query": [
-                {
-                  "key": "programId",
-                  "value": ""
+          "name": "General",
+          "item": [
+            {
+              "name": "List Student Sections",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/student-sections?programId=&enrollmentYear=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "student-sections"
+                  ],
+                  "query": [
+                    {
+                      "key": "programId",
+                      "value": ""
+                    },
+                    {
+                      "key": "enrollmentYear",
+                      "value": ""
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
                 },
-                {
-                  "key": "enrollmentYear",
-                  "value": ""
+                "description": "Lists student sections with `enrolledCount` and `seatsAvailable`. Roles: any authenticated."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Student Section by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "student-sections",
+                    "{{studentSectionId}}"
+                  ]
                 },
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
-              ]
-            },
-            "description": "Lists student sections with `enrolledCount` and `seatsAvailable`. Roles: any authenticated."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Student Section by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "student-sections",
-                "{{studentSectionId}}"
-              ]
-            },
-            "description": "Fetches a student section by id (includes seat counts). Roles: any authenticated."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Student Section",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"capacity\": 40\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "student-sections",
-                "{{studentSectionId}}"
-              ]
-            },
-            "description": "Updates sectionCode/capacity (program + year immutable; capacity can't drop below enrolled). Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Student Section",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/student-sections/{{studentSectionId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "student-sections",
-                "{{studentSectionId}}"
-              ]
-            },
-            "description": "Hard-deletes a student section; 409 if students are assigned. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
+                "description": "Fetches a student section by id (includes seat counts). Roles: any authenticated."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -3454,57 +3544,6 @@
               "response": []
             },
             {
-              "name": "List Instructors",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/instructor?page=1&limit=10&searchTerm=&departmentId=",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "instructor?page=1&limit=10&searchTerm=&departmentId="
-                  ]
-                },
-                "description": "Paginated list of instructors. Filters: `departmentId`, `searchTerm` (name/INS code/email). Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR."
-              },
-              "response": []
-            },
-            {
-              "name": "Get Instructor",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{accessToken}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/instructor/{{instructorId}}",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "instructor",
-                    "{{instructorId}}"
-                  ]
-                },
-                "description": "Fetches an instructor with department and assigned course sections. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR."
-              },
-              "response": []
-            },
-            {
               "name": "Update Instructor",
               "request": {
                 "method": "PATCH",
@@ -3562,6 +3601,62 @@
                   ]
                 },
                 "description": "Soft-deletes an instructor and unassigns their course sections. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "General",
+          "item": [
+            {
+              "name": "List Instructors",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor?page=1&limit=10&searchTerm=&departmentId=",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor?page=1&limit=10&searchTerm=&departmentId="
+                  ]
+                },
+                "description": "Paginated list of instructors. Filters: `departmentId`, `searchTerm` (name/INS code/email). Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR."
+              },
+              "response": []
+            },
+            {
+              "name": "Get Instructor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/{{instructorId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "{{instructorId}}"
+                  ]
+                },
+                "description": "Fetches an instructor with department and assigned course sections. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR."
               },
               "response": []
             }
