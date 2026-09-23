@@ -2253,506 +2253,516 @@
       "name": "Instructors",
       "item": [
         {
-          "name": "Register Instructor",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/auth/register",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "register"
-              ]
+          "name": "Applicant",
+          "item": [
+            {
+              "name": "Register Instructor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/auth/register",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                },
+                "description": "Registers a new user with the INSTRUCTOR role. Sends an OTP email; then verify via Verify Email in the Auth folder.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Instructor Name\",\n  \"email\": \"instructor@example.com\",\n  \"password\": \"Pass@1234\",\n  \"role\": \"INSTRUCTOR\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
             },
-            "description": "Registers a new user with the INSTRUCTOR role. Sends an OTP email; then verify via Verify Email in the Auth folder.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Instructor Name\",\n  \"email\": \"instructor@example.com\",\n  \"password\": \"Pass@1234\",\n  \"role\": \"INSTRUCTOR\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+            {
+              "name": "Apply as Instructor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/apply",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "apply"
+                  ]
+                },
+                "description": "Submits an instructor application. Department must exist. Saves the new id to `instructorApplicationId`. Role: INSTRUCTOR.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"departmentName\": \"Computer Science\",\n  \"phone\": \"+8801712345678\",\n  \"designation\": \"Lecturer\",\n  \"coverNote\": \"I am interested in joining.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "const res = pm.response.json();",
+                    "if (res && res.data && res.data.id) {",
+                    "    pm.collectionVariables.set('instructorApplicationId', res.data.res.data.id);",
+                    "}"
+                  ],
+                  "type": "text/javascript"
                 }
               }
+            },
+            {
+              "name": "Update Instructor Application",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/apply",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "apply"
+                  ]
+                },
+                "description": "Updates and resubmits the application when PENDING/REJECTED. Role: INSTRUCTOR.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"departmentName\": \"Computer Science\",\n  \"phone\": \"+8801712345678\",\n  \"designation\": \"Senior Lecturer\",\n  \"coverNote\": \"Updated details.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "My Application",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/application",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "application"
+                  ]
+                },
+                "description": "Fetches the authenticated instructor's application. Role: INSTRUCTOR."
+              },
+              "response": []
+            },
+            {
+              "name": "Upload Resume",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/resume",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "resume"
+                  ]
+                },
+                "description": "Uploads a resume (PDF/DOC/DOCX/image, max 5MB) to the application. Role: INSTRUCTOR.",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "resume",
+                      "type": "file",
+                      "src": "/path/to/resume.pdf",
+                      "disabled": false
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update My Profile",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/profile",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "profile"
+                  ]
+                },
+                "description": "Updates the instructor profile (synced to the user name). Requires an approved profile. Role: INSTRUCTOR.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Instructor Updated\",\n  \"phone\": \"+8801712345999\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Upload Avatar",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/avatar",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "avatar"
+                  ]
+                },
+                "description": "Uploads a profile image (image only, max 5MB). Role: INSTRUCTOR.",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "avatar",
+                      "type": "file",
+                      "src": "/path/to/avatar.jpg",
+                      "disabled": false
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "My Info",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/me",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "me"
+                  ]
+                },
+                "description": "Fetches the instructor's user + profile + assigned course sections. Role: INSTRUCTOR."
+              },
+              "response": []
             }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "Apply as Instructor",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/apply",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "apply"
-              ]
+          "name": "Admin",
+          "item": [
+            {
+              "name": "List Applications",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/applications?status=&page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "applications?status=&page=1&limit=10"
+                  ]
+                },
+                "description": "Lists instructor applications, optionally filtered by `status` (PENDING/APPROVED/REJECTED). Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             },
-            "description": "Submits an instructor application. Department must exist. Saves the new id to `instructorApplicationId`. Role: INSTRUCTOR.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"departmentName\": \"Computer Science\",\n  \"phone\": \"+8801712345678\",\n  \"designation\": \"Lecturer\",\n  \"coverNote\": \"I am interested in joining.\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+            {
+              "name": "Approve Application",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/applications/{{instructorApplicationId}}/approve",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "applications",
+                    "{{instructorApplicationId}}",
+                    "approve"
+                  ]
+                },
+                "description": "Approves a PENDING application and creates the instructor profile (assigns department/designation, generates a unique `INS` code). Saves the new `instructorId`. Roles: ADMIN, SUPER_ADMIN.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reviewNote\": \"Welcome aboard!\",\n  \"designation\": \"Lecturer\",\n  \"departmentId\": \"{{departmentId}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "const res = pm.response.json();",
+                    "if (res && res.data && res.data.id) {",
+                    "    pm.collectionVariables.set('instructorId', res.data.instructorId);",
+                    "}"
+                  ],
+                  "type": "text/javascript"
                 }
               }
-            }
-          },
-          "response": [],
-          "event": {
-            "listen": "test",
-            "script": {
-              "exec": [
-                "const res = pm.response.json();",
-                "if (res && res.data && res.data.id) {",
-                "    pm.collectionVariables.set('instructorApplicationId', res.data.res.data.id);",
-                "}"
-              ],
-              "type": "text/javascript"
-            }
-          }
-        },
-        {
-          "name": "Update Instructor Application",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/apply",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "apply"
-              ]
             },
-            "description": "Updates and resubmits the application when PENDING/REJECTED. Role: INSTRUCTOR.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"departmentName\": \"Computer Science\",\n  \"phone\": \"+8801712345678\",\n  \"designation\": \"Senior Lecturer\",\n  \"coverNote\": \"Updated details.\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+            {
+              "name": "Reject Application",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/applications/{{instructorApplicationId}}/reject",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "applications",
+                    "{{instructorApplicationId}}",
+                    "reject"
+                  ]
+                },
+                "description": "Rejects a PENDING application with an optional note. Roles: ADMIN, SUPER_ADMIN.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reviewNote\": \"We are unable to accept at this time.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "My Application",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/application",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "application"
-              ]
+              },
+              "response": []
             },
-            "description": "Fetches the authenticated instructor's application. Role: INSTRUCTOR."
-          },
-          "response": []
-        },
-        {
-          "name": "Upload Resume",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/resume",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "resume"
-              ]
+            {
+              "name": "List Instructors",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor?page=1&limit=10&searchTerm=&departmentId=",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor?page=1&limit=10&searchTerm=&departmentId="
+                  ]
+                },
+                "description": "Paginated list of instructors. Filters: `departmentId`, `searchTerm` (name/INS code/email). Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR."
+              },
+              "response": []
             },
-            "description": "Uploads a resume (PDF/DOC/DOCX/image, max 5MB) to the application. Role: INSTRUCTOR.",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "resume",
-                  "type": "file",
-                  "src": "/path/to/resume.pdf",
-                  "disabled": false
+            {
+              "name": "Get Instructor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/{{instructorId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "{{instructorId}}"
+                  ]
+                },
+                "description": "Fetches an instructor with department and assigned course sections. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR."
+              },
+              "response": []
+            },
+            {
+              "name": "Update Instructor",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/{{instructorId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "{{instructorId}}"
+                  ]
+                },
+                "description": "Admin updates an instructor's designation/department/phone/name. Roles: ADMIN, SUPER_ADMIN.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"designation\": \"Associate Professor\",\n  \"departmentId\": \"{{departmentId}}\",\n  \"phone\": \"+8801712345678\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
                 }
-              ]
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Instructor",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/instructor/{{instructorId}}",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "instructor",
+                    "{{instructorId}}"
+                  ]
+                },
+                "description": "Soft-deletes an instructor and unassigns their course sections. Roles: ADMIN, SUPER_ADMIN."
+              },
+              "response": []
             }
-          },
-          "response": []
-        },
-        {
-          "name": "Update My Profile",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/profile",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "profile"
-              ]
-            },
-            "description": "Updates the instructor profile (synced to the user name). Requires an approved profile. Role: INSTRUCTOR.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Instructor Updated\",\n  \"phone\": \"+8801712345999\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Upload Avatar",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/avatar",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "avatar"
-              ]
-            },
-            "description": "Uploads a profile image (image only, max 5MB). Role: INSTRUCTOR.",
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "avatar",
-                  "type": "file",
-                  "src": "/path/to/avatar.jpg",
-                  "disabled": false
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "My Info",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/me",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "me"
-              ]
-            },
-            "description": "Fetches the instructor's user + profile + assigned course sections. Role: INSTRUCTOR."
-          },
-          "response": []
-        },
-        {
-          "name": "List Applications",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/applications?status=&page=1&limit=10",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "applications?status=&page=1&limit=10"
-              ]
-            },
-            "description": "Lists instructor applications, optionally filtered by `status` (PENDING/APPROVED/REJECTED). Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
-        },
-        {
-          "name": "Approve Application",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/applications/{{instructorApplicationId}}/approve",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "applications",
-                "{{instructorApplicationId}}",
-                "approve"
-              ]
-            },
-            "description": "Approves a PENDING application and creates the instructor profile (assigns department/designation, generates a unique `INS` code). Saves the new `instructorId`. Roles: ADMIN, SUPER_ADMIN.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reviewNote\": \"Welcome aboard!\",\n  \"designation\": \"Lecturer\",\n  \"departmentId\": \"{{departmentId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": [],
-          "event": {
-            "listen": "test",
-            "script": {
-              "exec": [
-                "const res = pm.response.json();",
-                "if (res && res.data && res.data.id) {",
-                "    pm.collectionVariables.set('instructorId', res.data.instructorId);",
-                "}"
-              ],
-              "type": "text/javascript"
-            }
-          }
-        },
-        {
-          "name": "Reject Application",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/applications/{{instructorApplicationId}}/reject",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "applications",
-                "{{instructorApplicationId}}",
-                "reject"
-              ]
-            },
-            "description": "Rejects a PENDING application with an optional note. Roles: ADMIN, SUPER_ADMIN.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reviewNote\": \"We are unable to accept at this time.\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "List Instructors",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor?page=1&limit=10&searchTerm=&departmentId=",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor?page=1&limit=10&searchTerm=&departmentId="
-              ]
-            },
-            "description": "Paginated list of instructors. Filters: `departmentId`, `searchTerm` (name/INS code/email). Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Instructor",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/{{instructorId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "{{instructorId}}"
-              ]
-            },
-            "description": "Fetches an instructor with department and assigned course sections. Roles: ADMIN, SUPER_ADMIN, INSTRUCTOR."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Instructor",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/{{instructorId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "{{instructorId}}"
-              ]
-            },
-            "description": "Admin updates an instructor's designation/department/phone/name. Roles: ADMIN, SUPER_ADMIN.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"designation\": \"Associate Professor\",\n  \"departmentId\": \"{{departmentId}}\",\n  \"phone\": \"+8801712345678\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Instructor",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/instructor/{{instructorId}}",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "instructor",
-                "{{instructorId}}"
-              ]
-            },
-            "description": "Soft-deletes an instructor and unassigns their course sections. Roles: ADMIN, SUPER_ADMIN."
-          },
-          "response": []
+          ]
         }
       ]
     }
