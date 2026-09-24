@@ -1,4 +1,5 @@
 import app from "./app";
+import "./app/lib/pdfkitFonts";
 import { prisma } from "./app/lib/prisma";
 import { redisClient } from "./app/lib/redis";
 

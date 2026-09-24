@@ -1,5 +1,6 @@
 import app from "./app";
 import config from "./app/config";
+import "./app/lib/pdfkitFonts";
 import { transporter } from "./app/lib/nodemailer";
 import { prisma } from "./app/lib/prisma";
 import { redisClient } from "./app/lib/redis";

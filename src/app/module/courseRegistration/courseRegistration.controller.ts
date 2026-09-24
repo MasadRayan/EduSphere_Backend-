@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
+import config from "../../config";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import type {
@@ -24,15 +25,22 @@ const enrollSemester = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const handlePaymentCallback = catchAsync(
-	async (req: Request, res: Response) => {
+const handlePaymentCallback = async (req: Request, res: Response) => {
+	const baseUrl = config.frontend_url || config.backend_url;
+
+	try {
 		const result = await CourseRegistrationService.handlePaymentCallback(
 			req.query as Record<string, string>,
 		);
 
 		res.redirect(result.redirectUrl);
-	},
-);
+	} catch (error) {
+		const reason =
+			error instanceof Error ? encodeURIComponent(error.message) : "unknown";
+
+		res.redirect(`${baseUrl}?payment=failed&reason=${reason}`);
+	}
+};
 
 const getMyEnrollments = catchAsync(async (req: Request, res: Response) => {
 	const result = await CourseRegistrationService.getMyEnrollments(
