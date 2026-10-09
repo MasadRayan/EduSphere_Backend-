@@ -25,9 +25,22 @@ const enrollSemester = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const handlePaymentCallback = async (req: Request, res: Response) => {
-	const baseUrl = config.frontend_url || config.backend_url;
+const getRedirectBase = () => {
+	const candidate = (config.frontend_url || config.backend_url || "").trim();
 
+	if (!candidate) {
+		return "http://localhost:3000";
+	}
+
+	const isProduction =
+		config.node_env === "production" && candidate.includes("localhost");
+	const base =
+		isProduction && config.backend_url ? config.backend_url : candidate;
+
+	return base.replace(/\/+$/, "");
+};
+
+const handlePaymentCallback = async (req: Request, res: Response) => {
 	try {
 		const result = await CourseRegistrationService.handlePaymentCallback(
 			req.query as Record<string, string>,
@@ -38,7 +51,7 @@ const handlePaymentCallback = async (req: Request, res: Response) => {
 		const reason =
 			error instanceof Error ? encodeURIComponent(error.message) : "unknown";
 
-		res.redirect(`${baseUrl}?payment=failed&reason=${reason}`);
+		res.redirect(`${getRedirectBase()}?payment=failed&reason=${reason}`);
 	}
 };
 

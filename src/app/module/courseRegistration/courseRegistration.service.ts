@@ -11,7 +11,9 @@ import config from "../../config";
 import {
 	bkashCreatePayment,
 	bkashExecutePayment,
+	bkashQueryPayment,
 	bkashRefundPayment,
+	type IBkashExecutePaymentResponse,
 } from "../../lib/bkash";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
@@ -371,6 +373,53 @@ const enrollSemester = async (
 	};
 };
 
+const getFrontendBaseUrl = () => {
+	const isProduction = config.node_env === "production";
+	const isLocalHostname = (candidate: string) => {
+		try {
+			const hostname = new URL(candidate).hostname;
+			return hostname === "localhost" || hostname === "127.0.0.1";
+		} catch {
+			return false;
+		}
+	};
+
+	const candidate =
+		config.frontend_url?.trim() ||
+		config.backend_url?.trim() ||
+		"http://localhost:3000";
+
+	if (isProduction && isLocalHostname(candidate) && config.backend_url) {
+		return config.backend_url.replace(/\/+$/, "");
+	}
+
+	return candidate.replace(/\/+$/, "");
+};
+
+const reconcileBkashPayment = async (
+	paymentID: string,
+): Promise<IBkashExecutePaymentResponse> => {
+	try {
+		return await bkashExecutePayment(paymentID);
+	} catch (executeError) {
+		// The execute API can be called only once per paymentID. If a previous
+		// attempt already executed the payment (e.g. the earlier callback timed
+		// out after money was captured), bKash rejects the call. Reconcile the
+		// real state via the query API before giving up.
+		try {
+			const queryResult = await bkashQueryPayment(paymentID);
+
+			if (queryResult.transactionStatus === "Completed" && queryResult.trxID) {
+				return queryResult as IBkashExecutePaymentResponse;
+			}
+		} catch {
+			// Ignore query errors; surface the original execute error below.
+		}
+
+		throw executeError;
+	}
+};
+
 const handlePaymentCallback = async (query: Record<string, string>) => {
 	const { paymentID, status } = query;
 
@@ -429,12 +478,23 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 		]);
 
 		return {
-			redirectUrl: `${config.frontend_url}?payment=failed&status=${status}`,
+			redirectUrl: `${getFrontendBaseUrl()}?payment=failed&status=${status}`,
 			enrollmentId: enrollment.id,
 		};
 	}
 
-	const executeResponse = await bkashExecutePayment(paymentID);
+	// Idempotency guard: if this payment was already finalized successfully
+	// (e.g. the callback is invoked again after a timeout), reuse the stored
+	// transaction id instead of re-running the one-shot execute API.
+	if (payment.status === PaymentStatus.SUCCEEDED && payment.bkashTrxId) {
+		return {
+			redirectUrl: `${getFrontendBaseUrl()}?payment=success&trxId=${payment.bkashTrxId}&enrollmentId=${enrollment.id}`,
+			enrollmentId: enrollment.id,
+		};
+	}
+
+	const executeResponse = await reconcileBkashPayment(paymentID);
+	const trxId = executeResponse.trxID;
 
 	await prisma.$transaction([
 		prisma.payment.update({
@@ -457,33 +517,33 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 		}),
 	]);
 
-	try {
-		await sendEnrollmentInvoice({
-			to: enrollment.student.user.email,
-			studentName: enrollment.student.fullName,
-			semesterName: enrollment.semester.name,
-			year: enrollment.semester.year,
-			totalCredits: enrollment.totalCredits,
-			courses: enrollment.registrations.map((registration) => ({
-				courseTitle: registration.courseSection.course.title,
-				courseCode: registration.courseSection.course.code,
-				sectionCode: registration.courseSection.sectionCode,
-				creditHours: registration.courseSection.course.creditHours,
-				fee:
-					registration.courseSection.course.creditHours *
-					config.credit_fee_rate,
-			})),
-			amount: payment.amount,
-			invoiceNumber: payment.merchantInvoiceNumber ?? payment.id,
-			trxId: executeResponse.trxID ?? null,
-			paidAt: new Date(),
-		});
-	} catch (error) {
+	// Send the invoice email without blocking the browser redirect. SMTP can be
+	// slow and keeping it on the critical path risks hitting the serverless
+	// function timeout after the money transfer already succeeded.
+	void sendEnrollmentInvoice({
+		to: enrollment.student.user.email,
+		studentName: enrollment.student.fullName,
+		semesterName: enrollment.semester.name,
+		year: enrollment.semester.year,
+		totalCredits: enrollment.totalCredits,
+		courses: enrollment.registrations.map((registration) => ({
+			courseTitle: registration.courseSection.course.title,
+			courseCode: registration.courseSection.course.code,
+			sectionCode: registration.courseSection.sectionCode,
+			creditHours: registration.courseSection.course.creditHours,
+			fee:
+				registration.courseSection.course.creditHours * config.credit_fee_rate,
+		})),
+		amount: payment.amount,
+		invoiceNumber: payment.merchantInvoiceNumber ?? payment.id,
+		trxId: trxId ?? null,
+		paidAt: new Date(),
+	}).catch((error) => {
 		console.error("Failed to send enrollment invoice email:", error);
-	}
+	});
 
 	return {
-		redirectUrl: `${config.frontend_url}?payment=success&trxId=${executeResponse.trxID}&enrollmentId=${enrollment.id}`,
+		redirectUrl: `${getFrontendBaseUrl()}?payment=success&trxId=${trxId}&enrollmentId=${enrollment.id}`,
 		enrollmentId: enrollment.id,
 	};
 };

@@ -49,6 +49,25 @@ export interface IBkashExecutePaymentResponse {
 	errorMessage?: string;
 }
 
+export interface IBkashQueryPaymentResponse {
+	paymentID: string;
+	mode?: string;
+	payerReference?: string;
+	paymentCreateTime?: string;
+	paymentExecuteTime?: string;
+	trxID?: string;
+	transactionStatus: string;
+	amount?: string;
+	currency?: string;
+	intent?: string;
+	merchantInvoice?: string;
+	userVerificationStatus?: string;
+	statusCode: string;
+	statusMessage: string;
+	errorCode?: string;
+	errorMessage?: string;
+}
+
 export interface IBkashRefundPayload {
 	paymentID: string;
 	trxID: string;
@@ -139,6 +158,23 @@ export const bkashExecutePayment = async (
 	}
 
 	return result as IBkashExecutePaymentResponse;
+};
+
+export const bkashQueryPayment = async (
+	paymentID: string,
+): Promise<IBkashQueryPaymentResponse> => {
+	const result = await bkashRequest("/tokenized/checkout/payment/status", {
+		paymentID,
+	});
+
+	if (result.statusCode && result.statusCode !== "0000") {
+		throw new AppError(
+			httpStatus.BAD_GATEWAY,
+			result.statusMessage || "Bkash payment status query failed",
+		);
+	}
+
+	return result as IBkashQueryPaymentResponse;
 };
 
 export const bkashRefundPayment = async (
