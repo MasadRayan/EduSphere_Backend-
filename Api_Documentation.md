@@ -1,6 +1,6 @@
 # EduSphere — Auth API Documentation
 
-> **Base URL:** `http://localhost:8000/api/auth`  
+> **Base URL:** `https://edusphere-backend-snowy.vercel.app`  
 > **Content-Type:** `application/json`
 
 ---
