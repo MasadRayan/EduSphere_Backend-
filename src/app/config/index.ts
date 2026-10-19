@@ -12,6 +12,7 @@ export default {
 	bak_url: env("BACKEND_URL", env("APP_URL")),
 	backend_url: env("BACKEND_URL", env("APP_URL")),
 	frontend_url: env("FRONTEND_URL"),
+	payment_result_url: env("PAYMENT_RESULT_URL"),
 	bcrypt_salt_rounds: env("BCRYPT_SALT_ROUNDS"),
 	jwt_access_secret: env("JWT_ACCESS_SECRET"),
 	jwt_refresh_secret: env("JWT_REFRESH_SECRET"),

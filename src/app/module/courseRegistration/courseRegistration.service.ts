@@ -17,6 +17,7 @@ import {
 } from "../../lib/bkash";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
+import { getPaymentResultUrl } from "../../utils/paymentResultUrl";
 import { sendEnrollmentInvoice } from "./courseRegistration.email";
 import type {
 	ICreateEnrollmentPayload,
@@ -373,29 +374,6 @@ const enrollSemester = async (
 	};
 };
 
-const getFrontendBaseUrl = () => {
-	const isProduction = config.node_env === "production";
-	const isLocalHostname = (candidate: string) => {
-		try {
-			const hostname = new URL(candidate).hostname;
-			return hostname === "localhost" || hostname === "127.0.0.1";
-		} catch {
-			return false;
-		}
-	};
-
-	const candidate =
-		config.frontend_url?.trim() ||
-		config.backend_url?.trim() ||
-		"http://localhost:3000";
-
-	if (isProduction && isLocalHostname(candidate) && config.backend_url) {
-		return config.backend_url.replace(/\/+$/, "");
-	}
-
-	return candidate.replace(/\/+$/, "");
-};
-
 const reconcileBkashPayment = async (
 	paymentID: string,
 ): Promise<IBkashExecutePaymentResponse> => {
@@ -478,7 +456,7 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 		]);
 
 		return {
-			redirectUrl: `${getFrontendBaseUrl()}?payment=failed&status=${status}`,
+			redirectUrl: `${getPaymentResultUrl()}?payment=failed&status=${status}`,
 			enrollmentId: enrollment.id,
 		};
 	}
@@ -488,7 +466,7 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 	// transaction id instead of re-running the one-shot execute API.
 	if (payment.status === PaymentStatus.SUCCEEDED && payment.bkashTrxId) {
 		return {
-			redirectUrl: `${getFrontendBaseUrl()}?payment=success&trxId=${payment.bkashTrxId}&enrollmentId=${enrollment.id}`,
+			redirectUrl: `${getPaymentResultUrl()}?payment=success&trxId=${payment.bkashTrxId}&enrollmentId=${enrollment.id}`,
 			enrollmentId: enrollment.id,
 		};
 	}
@@ -543,7 +521,7 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 	});
 
 	return {
-		redirectUrl: `${getFrontendBaseUrl()}?payment=success&trxId=${trxId}&enrollmentId=${enrollment.id}`,
+		redirectUrl: `${getPaymentResultUrl()}?payment=success&trxId=${trxId}&enrollmentId=${enrollment.id}`,
 		enrollmentId: enrollment.id,
 	};
 };

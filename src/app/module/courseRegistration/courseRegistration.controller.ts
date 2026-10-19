@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
-import config from "../../config";
 import { catchAsync } from "../../utils/catchAsync";
+import { getPaymentResultUrl } from "../../utils/paymentResultUrl";
 import { sendResponse } from "../../utils/sendResponse";
 import type {
 	IRegistrationQuery,
@@ -25,21 +25,6 @@ const enrollSemester = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const getRedirectBase = () => {
-	const candidate = (config.frontend_url || config.backend_url || "").trim();
-
-	if (!candidate) {
-		return "http://localhost:3000";
-	}
-
-	const isProduction =
-		config.node_env === "production" && candidate.includes("localhost");
-	const base =
-		isProduction && config.backend_url ? config.backend_url : candidate;
-
-	return base.replace(/\/+$/, "");
-};
-
 const handlePaymentCallback = async (req: Request, res: Response) => {
 	try {
 		const result = await CourseRegistrationService.handlePaymentCallback(
@@ -51,7 +36,7 @@ const handlePaymentCallback = async (req: Request, res: Response) => {
 		const reason =
 			error instanceof Error ? encodeURIComponent(error.message) : "unknown";
 
-		res.redirect(`${getRedirectBase()}?payment=failed&reason=${reason}`);
+		res.redirect(`${getPaymentResultUrl()}?payment=failed&reason=${reason}`);
 	}
 };
 
