@@ -959,6 +959,39 @@ const getEnrollmentById = async (
 	return enrollment;
 };
 
+const getEnrollmentInvoice = async (
+	userId: string,
+	role: Role,
+	enrollmentId: string,
+) => {
+	const enrollment = await getEnrollmentById(userId, role, enrollmentId);
+
+	const payment = enrollment.payment;
+
+	if (
+		!payment ||
+		(payment.status !== PaymentStatus.SUCCEEDED &&
+			payment.status !== PaymentStatus.REFUNDED)
+	) {
+		throw new AppError(
+			httpStatus.BAD_REQUEST,
+			"Invoice is only available after a successful payment",
+		);
+	}
+
+	const payload = buildInvoicePayload(enrollment, payment.updatedAt);
+	const invoiceBuffer = await buildEnrollmentInvoicePdf(payload);
+	const safeInvoiceNumber = payload.invoiceNumber.replace(
+		/[^A-Za-z0-9._-]/g,
+		"",
+	);
+
+	return {
+		buffer: invoiceBuffer,
+		filename: `invoice-${safeInvoiceNumber || enrollment.id}.pdf`,
+	};
+};
+
 const cancelEnrollment = async (
 	userId: string,
 	role: Role,
@@ -1081,6 +1114,7 @@ export const CourseRegistrationService = {
 	getMyEnrollments,
 	getAllEnrollments,
 	getEnrollmentById,
+	getEnrollmentInvoice,
 	cancelEnrollment,
 	updateRegistrationStatus,
 };

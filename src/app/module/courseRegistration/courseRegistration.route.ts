@@ -32,6 +32,11 @@ router.get(
 	auth(Role.STUDENT, Role.ADMIN, Role.SUPER_ADMIN),
 	CourseRegistrationController.getEnrollmentById,
 );
+router.get(
+	"/:id/invoice",
+	auth(Role.STUDENT, Role.ADMIN, Role.SUPER_ADMIN),
+	CourseRegistrationController.downloadInvoice,
+);
 router.patch(
 	"/:id/cancel",
 	auth(Role.STUDENT, Role.ADMIN, Role.SUPER_ADMIN),
