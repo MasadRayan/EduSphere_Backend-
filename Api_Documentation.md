@@ -3215,6 +3215,8 @@ POST /api/course-registrations/enroll
 
 Selection logic: the student's `currentSemesterId` is used, falling back to the active semester. Open sections are auto-assigned in creation order (respecting capacity and preventing re-enrollment into a completed course).
 
+Retry logic: calling this endpoint again after a failed or cancelled bKash attempt reuses the existing enrollment for the semester, clears the cancelled course drafts and resets the payment row before creating a new bKash checkout. A pending attempt is reconciled with the bKash status API first: a completed payment is finalized instead of charged again, an in-flight payment returns 409, and an abandoned one is cancelled so the retry can proceed.
+
 ### Error Responses
 
 | Status | Message |
@@ -3225,7 +3227,11 @@ Selection logic: the student's `currentSemesterId` is used, falling back to the 
 | 400 | `"Enrollment for this semester has already closed"` |
 | 400 | `"One or more courses were not found"` |
 | 400 | `"Total credits (N) exceed the maximum of N per semester"` |
-| 409 | `"You already have an enrollment for this semester"` |
+| 409 | `"You are already enrolled for this semester"` |
+| 409 | `"Your previous bKash payment is still in progress. Finish it in the bKash window, or wait an hour and try again."` |
+| 409 | `"Your previous bKash payment already completed. Your enrollment is confirmed, open My enrollments to see it."` |
+| 409 | `"Your previous enrollment was paid and then cancelled. Contact the registrar office to enroll again for this semester."` |
+| 409 | `"Another enrollment attempt is already in progress for this semester. Refresh the page and try again."` |
 | 400 | `"Prerequisites not completed for the selected courses. Missing prerequisites - <details>. Please complete them before enrolling."` |
 | 404 | `"No course section exists for <CODE> in the current semester. Contact the registrar office."` |
 | 409 | `"You have already completed <CODE>. Retaking a completed course is not allowed."` |

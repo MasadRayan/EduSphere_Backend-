@@ -5,7 +5,7 @@ import config from "../../config";
 import { transporter } from "../../lib/nodemailer";
 import type { IInvoiceMailPayload } from "./courseRegistration.interface";
 
-const buildInvoiceBuffer = async (
+export const buildEnrollmentInvoicePdf = async (
 	payload: IInvoiceMailPayload,
 ): Promise<Buffer> => {
 	const doc = new PDFDocument({ margin: 50, size: "A4" });
@@ -154,7 +154,7 @@ export const sendEnrollmentInvoice = async (payload: IInvoiceMailPayload) => {
 
 	const html = await ejs.renderFile(templatePath, payload);
 
-	const invoiceBuffer = await buildInvoiceBuffer(payload);
+	const invoiceBuffer = await buildEnrollmentInvoicePdf(payload);
 
 	await transporter.sendMail({
 		from: config.email_sender,

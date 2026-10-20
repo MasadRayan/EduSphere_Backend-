@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import type { Prisma } from "../../../generated/prisma/client";
+import { Prisma } from "../../../generated/prisma/client";
 import {
 	EnrollmentStatus,
 	PaymentPurpose,
@@ -13,14 +13,20 @@ import {
 	bkashExecutePayment,
 	bkashQueryPayment,
 	bkashRefundPayment,
+	type IBkashCreatePaymentResponse,
 	type IBkashExecutePaymentResponse,
+	type IBkashQueryPaymentResponse,
 } from "../../lib/bkash";
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { getPaymentResultUrl } from "../../utils/paymentResultUrl";
-import { sendEnrollmentInvoice } from "./courseRegistration.email";
+import {
+	buildEnrollmentInvoicePdf,
+	sendEnrollmentInvoice,
+} from "./courseRegistration.email";
 import type {
 	ICreateEnrollmentPayload,
+	IInvoiceMailPayload,
 	IRegistrationQuery,
 } from "./courseRegistration.interface";
 
@@ -40,6 +46,74 @@ const enrollmentInclude = {
 	},
 } satisfies Prisma.SemesterEnrollmentInclude;
 
+const invoiceInclude = {
+	payment: true,
+	student: { include: { user: true } },
+	semester: true,
+	registrations: {
+		where: { isDeleted: false },
+		include: {
+			courseSection: {
+				include: { course: true, semester: true },
+			},
+		},
+	},
+} satisfies Prisma.SemesterEnrollmentInclude;
+
+/**
+ * Shape shared by the callback include and the get-by-id include. Only the
+ * fields printed on the invoice are required, so both queries can feed the
+ * same payload builder.
+ */
+type InvoiceEnrollment = {
+	id: string;
+	student: { fullName: string; user: { email: string } };
+	semester: { name: string; year: number };
+	totalCredits: number;
+	totalFee: number;
+	payment: {
+		id: string;
+		amount: number;
+		merchantInvoiceNumber: string | null;
+		bkashTrxId: string | null;
+		updatedAt: Date;
+	} | null;
+	registrations: Array<{
+		courseSection: {
+			sectionCode: string;
+			course: { code: string; title: string; creditHours: number };
+		};
+	}>;
+};
+
+const buildInvoicePayload = (
+	enrollment: InvoiceEnrollment,
+	paidAt: Date,
+): IInvoiceMailPayload => {
+	const payment = enrollment.payment;
+
+	return {
+		to: enrollment.student.user.email,
+		studentName: enrollment.student.fullName,
+		semesterName: enrollment.semester.name,
+		year: enrollment.semester.year,
+		totalCredits: enrollment.totalCredits,
+		courses: enrollment.registrations.map((registration) => ({
+			courseTitle: registration.courseSection.course.title,
+			courseCode: registration.courseSection.course.code,
+			sectionCode: registration.courseSection.sectionCode,
+			creditHours: registration.courseSection.course.creditHours,
+			fee:
+				registration.courseSection.course.creditHours * config.credit_fee_rate,
+		})),
+		amount: payment?.amount ?? enrollment.totalFee,
+		invoiceNumber:
+			payment?.merchantInvoiceNumber ?? payment?.id ?? enrollment.id,
+		trxId: payment?.bkashTrxId ?? null,
+		paidAt,
+	};
+};
+
 const getStudentProfileByUserId = async (userId: string) => {
 	const student = await prisma.studentProfile.findUnique({
 		where: { userId },
@@ -55,25 +129,157 @@ const getStudentProfileByUserId = async (userId: string) => {
 	return student;
 };
 
-const ensureNoActiveEnrollmentForSemester = async (
-	studentId: string,
-	semesterId: string,
-) => {
-	const existing = await prisma.semesterEnrollment.findFirst({
-		where: {
-			studentId,
-			semesterId,
-			status: { in: [EnrollmentStatus.PENDING, EnrollmentStatus.ENROLLED] },
-			isDeleted: false,
-		},
+/**
+ * A bKash checkout session stays valid for about an hour. Until then a pending
+ * attempt may still be completed by the student, so a retry must not cancel it.
+ */
+const BKASH_SESSION_WINDOW_MS = 60 * 60 * 1000;
+
+type EnrollmentWithPayment = Prisma.SemesterEnrollmentGetPayload<{
+	include: { payment: true };
+}>;
+
+const loadEnrollmentWithPayment = (id: string) =>
+	prisma.semesterEnrollment.findUnique({
+		where: { id },
+		include: { payment: true },
 	});
 
-	if (existing) {
+/**
+ * Marks an unfinished attempt as failed so the next attempt can reuse it.
+ * The rows are kept (not deleted) because the student may want to see the
+ * cancelled attempt in their enrollment history.
+ */
+const failEnrollmentAttempt = async (
+	enrollmentId: string,
+	paymentId: string | null,
+	bkashStatus: string | null,
+) => {
+	await prisma.$transaction(async (tx) => {
+		if (paymentId) {
+			await tx.payment.update({
+				where: { id: paymentId },
+				data: { status: PaymentStatus.FAILED, bkashStatus },
+			});
+		}
+
+		await tx.semesterEnrollment.update({
+			where: { id: enrollmentId },
+			data: { status: EnrollmentStatus.CANCELLED },
+		});
+
+		await tx.courseRegistration.updateMany({
+			where: { semesterEnrollmentId: enrollmentId, isDeleted: false },
+			data: { status: RegistrationStatus.CANCELLED },
+		});
+	});
+};
+
+/**
+ * Resolves the enrollment row for a student and semester before starting a new
+ * attempt. The schema keeps one enrollment per student and semester, so a
+ * cancelled attempt has to be reused instead of inserted again.
+ *
+ * Returns null when there is nothing to reuse. Throws when a new attempt must
+ * not start yet (already enrolled, payment still in flight, unknown gateway
+ * state) or when the previous attempt turned out to be paid after all.
+ */
+const resolveEnrollmentForRetry = async (
+	studentId: string,
+	semesterId: string,
+): Promise<EnrollmentWithPayment | null> => {
+	const existing = await prisma.semesterEnrollment.findFirst({
+		where: { studentId, semesterId, isDeleted: false },
+		include: { payment: true },
+	});
+
+	if (!existing) {
+		return null;
+	}
+
+	if (existing.status === EnrollmentStatus.ENROLLED) {
 		throw new AppError(
 			httpStatus.CONFLICT,
-			"You already have an enrollment for this semester",
+			"You are already enrolled for this semester",
 		);
 	}
+
+	if (existing.status === EnrollmentStatus.CANCELLED) {
+		// A paid attempt may have been refunded. Reusing that payment row would
+		// erase the refund record, so leave it to the registrar.
+		const paidAttempt =
+			existing.payment &&
+			(existing.payment.status === PaymentStatus.SUCCEEDED ||
+				existing.payment.status === PaymentStatus.REFUNDED ||
+				Boolean(existing.payment.refundedAt));
+
+		if (paidAttempt) {
+			throw new AppError(
+				httpStatus.CONFLICT,
+				"Your previous enrollment was paid and then cancelled. Contact the registrar office to enroll again for this semester.",
+			);
+		}
+
+		return existing;
+	}
+
+	const payment = existing.payment;
+
+	if (!payment?.bkashPaymentId) {
+		await failEnrollmentAttempt(
+			existing.id,
+			payment?.id ?? null,
+			"CHECKOUT_ABANDONED",
+		);
+		return loadEnrollmentWithPayment(existing.id);
+	}
+
+	let queryResult: IBkashQueryPaymentResponse;
+
+	try {
+		queryResult = await bkashQueryPayment(payment.bkashPaymentId);
+	} catch {
+		throw new AppError(
+			httpStatus.CONFLICT,
+			"We could not confirm your previous bKash payment. Please wait a few minutes and try again.",
+		);
+	}
+
+	// Money may have been captured even when the callback never reached us.
+	// Finalize the enrollment instead of starting a second, double-charging
+	// payment.
+	if (queryResult.transactionStatus === "Completed" && queryResult.trxID) {
+		await finalizeEnrollmentPayment(
+			payment.id,
+			existing.id,
+			queryResult as unknown as IBkashExecutePaymentResponse,
+		);
+
+		throw new AppError(
+			httpStatus.CONFLICT,
+			"Your previous bKash payment already completed. Your enrollment is confirmed, open My enrollments to see it.",
+		);
+	}
+
+	const stillInFlight =
+		["Initiated", "Pending", "Authorized"].includes(
+			queryResult.transactionStatus,
+		) && Date.now() - existing.updatedAt.getTime() < BKASH_SESSION_WINDOW_MS;
+
+	if (stillInFlight) {
+		throw new AppError(
+			httpStatus.CONFLICT,
+			"Your previous bKash payment is still in progress. Finish it in the bKash window, or wait an hour and try again.",
+		);
+	}
+
+	await failEnrollmentAttempt(
+		existing.id,
+		payment.id,
+		queryResult.transactionStatus ?? null,
+	);
+
+	return loadEnrollmentWithPayment(existing.id);
 };
 
 const loadCourses = async (courseIds: string[]) => {
@@ -231,6 +437,141 @@ const ensurePrerequisitesSatisfied = async (
 	}
 };
 
+/**
+ * Creates the enrollment, registrations and payment for a new attempt. When a
+ * cancelled attempt already exists it is reused, because the schema allows a
+ * single enrollment per student and semester. The payment row is reused too
+ * (it is one-to-one with the enrollment), so stale bKash fields are cleared
+ * before the new gateway call.
+ */
+const saveEnrollmentAttempt = async ({
+	existing,
+	studentId,
+	semesterId,
+	userId,
+	totalCredits,
+	totalFee,
+	sections,
+}: {
+	existing: EnrollmentWithPayment | null;
+	studentId: string;
+	semesterId: string;
+	userId: string;
+	totalCredits: number;
+	totalFee: number;
+	sections: Array<{ sectionId: string }>;
+}) => {
+	let enrollmentId: string;
+
+	if (!existing) {
+		try {
+			const created = await prisma.semesterEnrollment.create({
+				data: {
+					studentId,
+					semesterId,
+					totalCredits,
+					totalFee,
+					status: EnrollmentStatus.PENDING,
+					registrations: {
+						create: sections.map((section) => ({
+							studentId,
+							courseSectionId: section.sectionId,
+							status: RegistrationStatus.PENDING,
+						})),
+					},
+					payment: {
+						create: {
+							userId,
+							amount: totalFee,
+							currency: "BDT",
+							purpose: PaymentPurpose.REGISTRATION_FEE,
+							status: PaymentStatus.PENDING,
+						},
+					},
+				},
+			});
+
+			enrollmentId = created.id;
+		} catch (error) {
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === "P2002"
+			) {
+				throw new AppError(
+					httpStatus.CONFLICT,
+					"Another enrollment attempt is already in progress for this semester. Refresh the page and try again.",
+				);
+			}
+
+			throw error;
+		}
+	} else {
+		enrollmentId = existing.id;
+
+		await prisma.$transaction(async (tx) => {
+			// Cancelled drafts from the failed attempt would violate the
+			// (student, courseSection) unique constraint, so clear them before
+			// creating the new selection.
+			await tx.courseRegistration.deleteMany({
+				where: {
+					semesterEnrollmentId: existing.id,
+					status: {
+						in: [RegistrationStatus.PENDING, RegistrationStatus.CANCELLED],
+					},
+				},
+			});
+
+			await tx.semesterEnrollment.update({
+				where: { id: existing.id },
+				data: { totalCredits, totalFee, status: EnrollmentStatus.PENDING },
+			});
+
+			if (existing.payment) {
+				await tx.payment.update({
+					where: { id: existing.payment.id },
+					data: {
+						amount: totalFee,
+						status: PaymentStatus.PENDING,
+						bkashPaymentId: null,
+						bkashTrxId: null,
+						bkashStatus: null,
+						bkashGatewayResponse: Prisma.DbNull,
+						merchantInvoiceNumber: null,
+						refundTrxId: null,
+						refundedAt: null,
+					},
+				});
+			} else {
+				await tx.payment.create({
+					data: {
+						userId,
+						semesterEnrollmentId: existing.id,
+						amount: totalFee,
+						currency: "BDT",
+						purpose: PaymentPurpose.REGISTRATION_FEE,
+						status: PaymentStatus.PENDING,
+					},
+				});
+			}
+
+			await tx.courseRegistration.createMany({
+				data: sections.map((section) => ({
+					studentId,
+					semesterEnrollmentId: existing.id,
+					courseSectionId: section.sectionId,
+					status: RegistrationStatus.PENDING,
+				})),
+			});
+		});
+	}
+
+	const payment = await prisma.payment.findUniqueOrThrow({
+		where: { semesterEnrollmentId: enrollmentId },
+	});
+
+	return { enrollmentId, paymentId: payment.id };
+};
+
 const enrollSemester = async (
 	userId: string,
 	payload: ICreateEnrollmentPayload,
@@ -283,7 +624,10 @@ const enrollSemester = async (
 		);
 	}
 
-	await ensureNoActiveEnrollmentForSemester(student.id, semester.id);
+	const existingEnrollment = await resolveEnrollmentForRetry(
+		student.id,
+		semester.id,
+	);
 
 	await ensurePrerequisitesSatisfied(
 		student.id,
@@ -314,49 +658,41 @@ const enrollSemester = async (
 
 	const totalFee = totalCredits * config.credit_fee_rate;
 
-	const enrollment = await prisma.semesterEnrollment.create({
-		data: {
-			studentId: student.id,
-			semesterId: semester.id,
-			totalCredits,
-			totalFee,
-			status: EnrollmentStatus.PENDING,
-			registrations: {
-				create: sections.map((section) => ({
-					studentId: student.id,
-					courseSectionId: section.sectionId,
-					status: RegistrationStatus.PENDING,
-				})),
-			},
-			payment: {
-				create: {
-					userId,
-					amount: totalFee,
-					currency: "BDT",
-					purpose: PaymentPurpose.REGISTRATION_FEE,
-					status: PaymentStatus.PENDING,
-				},
-			},
-		},
-		include: {
-			registrations: true,
-			payment: true,
-		},
+	const { enrollmentId, paymentId } = await saveEnrollmentAttempt({
+		existing: existingEnrollment,
+		studentId: student.id,
+		semesterId: semester.id,
+		userId,
+		totalCredits,
+		totalFee,
+		sections,
 	});
 
-	const merchantInvoiceNumber = `ENR-${enrollment.id
+	// bKash rejects a repeated merchant invoice number, and the reused payment
+	// row already carries the previous attempt's invoice. Suffix each attempt
+	// with a timestamp so every checkout is unique.
+	const merchantInvoiceNumber = `ENR-${enrollmentId
 		.slice(0, 8)
-		.toUpperCase()}`;
+		.toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
-	const createResponse = await bkashCreatePayment({
-		amount: totalFee.toFixed(2),
-		merchantInvoiceNumber,
-		callbackURL: config.bkash_callback_url,
-		payerReference: student.studentId,
-	});
+	let createResponse: IBkashCreatePaymentResponse;
+
+	try {
+		createResponse = await bkashCreatePayment({
+			amount: totalFee.toFixed(2),
+			merchantInvoiceNumber,
+			callbackURL: config.bkash_callback_url,
+			payerReference: student.studentId,
+		});
+	} catch (error) {
+		// Never leave a pending attempt behind when the gateway call fails,
+		// otherwise it would block every later retry.
+		await failEnrollmentAttempt(enrollmentId, paymentId, "CREATE_FAILED");
+		throw error;
+	}
 
 	await prisma.payment.update({
-		where: { semesterEnrollmentId: enrollment.id },
+		where: { id: paymentId },
 		data: {
 			bkashPaymentId: createResponse.paymentID,
 			merchantInvoiceNumber,
@@ -367,7 +703,7 @@ const enrollSemester = async (
 		paymentUrl: createResponse.bkashURL,
 		paymentID: createResponse.paymentID,
 		merchantInvoiceNumber,
-		enrollmentId: enrollment.id,
+		enrollmentId,
 		totalCredits,
 		totalFee,
 		sections,
@@ -398,6 +734,60 @@ const reconcileBkashPayment = async (
 	}
 };
 
+/**
+ * Marks a bKash payment as captured and confirms the enrollment it belongs to.
+ * Shared by the browser callback and the retry reconciliation path so a payment
+ * that completed without a callback is never charged twice.
+ */
+const finalizeEnrollmentPayment = async (
+	paymentId: string,
+	enrollmentId: string,
+	executeResponse: IBkashExecutePaymentResponse,
+) => {
+	const trxId = executeResponse.trxID;
+
+	await prisma.$transaction([
+		prisma.payment.update({
+			where: { id: paymentId },
+			data: {
+				status: PaymentStatus.SUCCEEDED,
+				bkashStatus: executeResponse.transactionStatus,
+				bkashTrxId: executeResponse.trxID,
+				bkashGatewayResponse:
+					executeResponse as unknown as Prisma.InputJsonValue,
+			},
+		}),
+		prisma.semesterEnrollment.update({
+			where: { id: enrollmentId },
+			data: { status: EnrollmentStatus.ENROLLED },
+		}),
+		prisma.courseRegistration.updateMany({
+			where: { semesterEnrollmentId: enrollmentId, isDeleted: false },
+			data: { status: RegistrationStatus.ENROLLED },
+		}),
+	]);
+
+	const enrollment = await prisma.semesterEnrollment.findUnique({
+		where: { id: enrollmentId },
+		include: invoiceInclude,
+	});
+
+	if (!enrollment) {
+		return trxId;
+	}
+
+	// Send the invoice email without blocking the browser redirect. SMTP can be
+	// slow and keeping it on the critical path risks hitting the serverless
+	// function timeout after the money transfer already succeeded.
+	void sendEnrollmentInvoice(buildInvoicePayload(enrollment, new Date())).catch(
+		(error) => {
+			console.error("Failed to send enrollment invoice email:", error);
+		},
+	);
+
+	return trxId;
+};
+
 const handlePaymentCallback = async (query: Record<string, string>) => {
 	const { paymentID, status } = query;
 
@@ -407,21 +797,7 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 
 	const payment = await prisma.payment.findUnique({
 		where: { bkashPaymentId: paymentID },
-		include: {
-			semesterEnrollment: {
-				include: {
-					student: { include: { user: true } },
-					semester: true,
-					registrations: {
-						include: {
-							courseSection: {
-								include: { course: true, semester: true },
-							},
-						},
-					},
-				},
-			},
-		},
+		include: { semesterEnrollment: true },
 	});
 
 	if (!payment) {
@@ -437,33 +813,8 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 		);
 	}
 
-	const registrationIds = enrollment.registrations.map((r) => r.id);
-
-	if (status !== "success") {
-		await prisma.$transaction([
-			prisma.payment.update({
-				where: { id: payment.id },
-				data: { status: PaymentStatus.FAILED, bkashStatus: status },
-			}),
-			prisma.semesterEnrollment.update({
-				where: { id: enrollment.id },
-				data: { status: EnrollmentStatus.CANCELLED },
-			}),
-			prisma.courseRegistration.updateMany({
-				where: { id: { in: registrationIds } },
-				data: { status: RegistrationStatus.CANCELLED },
-			}),
-		]);
-
-		return {
-			redirectUrl: `${getPaymentResultUrl()}?payment=failed&status=${status}`,
-			enrollmentId: enrollment.id,
-		};
-	}
-
-	// Idempotency guard: if this payment was already finalized successfully
-	// (e.g. the callback is invoked again after a timeout), reuse the stored
-	// transaction id instead of re-running the one-shot execute API.
+	// Idempotency guard: a finalized payment must stay successful no matter how
+	// many times bKash replays the callback, even if the replay says cancelled.
 	if (payment.status === PaymentStatus.SUCCEEDED && payment.bkashTrxId) {
 		return {
 			redirectUrl: `${getPaymentResultUrl()}?payment=success&trxId=${payment.bkashTrxId}&enrollmentId=${enrollment.id}`,
@@ -471,54 +822,21 @@ const handlePaymentCallback = async (query: Record<string, string>) => {
 		};
 	}
 
+	if (status !== "success") {
+		await failEnrollmentAttempt(enrollment.id, payment.id, status);
+
+		return {
+			redirectUrl: `${getPaymentResultUrl()}?payment=failed&status=${status}`,
+			enrollmentId: enrollment.id,
+		};
+	}
+
 	const executeResponse = await reconcileBkashPayment(paymentID);
-	const trxId = executeResponse.trxID;
-
-	await prisma.$transaction([
-		prisma.payment.update({
-			where: { id: payment.id },
-			data: {
-				status: PaymentStatus.SUCCEEDED,
-				bkashStatus: executeResponse.transactionStatus,
-				bkashTrxId: executeResponse.trxID,
-				bkashGatewayResponse:
-					executeResponse as unknown as Prisma.InputJsonValue,
-			},
-		}),
-		prisma.semesterEnrollment.update({
-			where: { id: enrollment.id },
-			data: { status: EnrollmentStatus.ENROLLED },
-		}),
-		prisma.courseRegistration.updateMany({
-			where: { id: { in: registrationIds } },
-			data: { status: RegistrationStatus.ENROLLED },
-		}),
-	]);
-
-	// Send the invoice email without blocking the browser redirect. SMTP can be
-	// slow and keeping it on the critical path risks hitting the serverless
-	// function timeout after the money transfer already succeeded.
-	void sendEnrollmentInvoice({
-		to: enrollment.student.user.email,
-		studentName: enrollment.student.fullName,
-		semesterName: enrollment.semester.name,
-		year: enrollment.semester.year,
-		totalCredits: enrollment.totalCredits,
-		courses: enrollment.registrations.map((registration) => ({
-			courseTitle: registration.courseSection.course.title,
-			courseCode: registration.courseSection.course.code,
-			sectionCode: registration.courseSection.sectionCode,
-			creditHours: registration.courseSection.course.creditHours,
-			fee:
-				registration.courseSection.course.creditHours * config.credit_fee_rate,
-		})),
-		amount: payment.amount,
-		invoiceNumber: payment.merchantInvoiceNumber ?? payment.id,
-		trxId: trxId ?? null,
-		paidAt: new Date(),
-	}).catch((error) => {
-		console.error("Failed to send enrollment invoice email:", error);
-	});
+	const trxId = await finalizeEnrollmentPayment(
+		payment.id,
+		enrollment.id,
+		executeResponse,
+	);
 
 	return {
 		redirectUrl: `${getPaymentResultUrl()}?payment=success&trxId=${trxId}&enrollmentId=${enrollment.id}`,
@@ -691,10 +1009,11 @@ const cancelEnrollment = async (
 	if (
 		payment &&
 		payment.status === PaymentStatus.SUCCEEDED &&
-		payment.bkashTrxId
+		payment.bkashTrxId &&
+		payment.bkashPaymentId
 	) {
 		const refundResponse = await bkashRefundPayment({
-			paymentID: payment.bkashPaymentId!,
+			paymentID: payment.bkashPaymentId,
 			trxID: payment.bkashTrxId,
 			amount: payment.amount.toFixed(2),
 			sku: payment.merchantInvoiceNumber ?? "semester-enrollment",

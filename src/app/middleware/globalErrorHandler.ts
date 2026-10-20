@@ -21,8 +21,9 @@ export const globalErrorHandler = async (
 		errorMessage = "You have provided incorrect field type or missing fields";
 	} else if (err instanceof Prisma.PrismaClientKnownRequestError) {
 		if (err.code === "P2002") {
-			statusCode = 400;
-			errorMessage = "Duplicate Key Error";
+			statusCode = 409;
+			errorMessage =
+				"This record already exists. Refresh the page and try again.";
 		} else if (err.code === "P2003") {
 			statusCode = 400;
 			errorMessage = "Foreign key constraint failed";
