@@ -18,6 +18,7 @@ import { CourseSectionRoutes } from "./app/module/courseSection/courseSection.ro
 import { DepartmentRoutes } from "./app/module/department/department.route";
 import { ExamRoutes } from "./app/module/exam/exam.route";
 import { InstructorRoutes } from "./app/module/instructor/instructor.route";
+import { InvoiceRoutes } from "./app/module/invoice/invoice.route";
 import { PaymentRoutes } from "./app/module/payment/payment.route";
 import { ProgramRoutes } from "./app/module/program/program.route";
 import { ResultRoutes } from "./app/module/result/result.route";
@@ -58,6 +59,7 @@ app.use("/api/users", UserRoutes);
 app.use("/api/student-sections", StudentSectionRoutes);
 app.use("/api/student", StudentRoutes);
 app.use("/api/instructor", InstructorRoutes);
+app.use("/api/invoices", InvoiceRoutes);
 
 // Basic route
 app.get("/", async (req: Request, res: Response) => {

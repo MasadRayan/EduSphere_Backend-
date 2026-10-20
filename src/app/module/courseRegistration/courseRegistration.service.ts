@@ -20,13 +20,10 @@ import {
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../utils/AppError";
 import { getPaymentResultUrl } from "../../utils/paymentResultUrl";
-import {
-	buildEnrollmentInvoicePdf,
-	sendEnrollmentInvoice,
-} from "./courseRegistration.email";
+import { buildInvoicePayload } from "../invoice/invoice.helper";
+import { sendEnrollmentInvoice } from "./courseRegistration.email";
 import type {
 	ICreateEnrollmentPayload,
-	IInvoiceMailPayload,
 	IRegistrationQuery,
 } from "./courseRegistration.interface";
 
@@ -59,60 +56,6 @@ const invoiceInclude = {
 		},
 	},
 } satisfies Prisma.SemesterEnrollmentInclude;
-
-/**
- * Shape shared by the callback include and the get-by-id include. Only the
- * fields printed on the invoice are required, so both queries can feed the
- * same payload builder.
- */
-type InvoiceEnrollment = {
-	id: string;
-	student: { fullName: string; user: { email: string } };
-	semester: { name: string; year: number };
-	totalCredits: number;
-	totalFee: number;
-	payment: {
-		id: string;
-		amount: number;
-		merchantInvoiceNumber: string | null;
-		bkashTrxId: string | null;
-		updatedAt: Date;
-	} | null;
-	registrations: Array<{
-		courseSection: {
-			sectionCode: string;
-			course: { code: string; title: string; creditHours: number };
-		};
-	}>;
-};
-
-const buildInvoicePayload = (
-	enrollment: InvoiceEnrollment,
-	paidAt: Date,
-): IInvoiceMailPayload => {
-	const payment = enrollment.payment;
-
-	return {
-		to: enrollment.student.user.email,
-		studentName: enrollment.student.fullName,
-		semesterName: enrollment.semester.name,
-		year: enrollment.semester.year,
-		totalCredits: enrollment.totalCredits,
-		courses: enrollment.registrations.map((registration) => ({
-			courseTitle: registration.courseSection.course.title,
-			courseCode: registration.courseSection.course.code,
-			sectionCode: registration.courseSection.sectionCode,
-			creditHours: registration.courseSection.course.creditHours,
-			fee:
-				registration.courseSection.course.creditHours * config.credit_fee_rate,
-		})),
-		amount: payment?.amount ?? enrollment.totalFee,
-		invoiceNumber:
-			payment?.merchantInvoiceNumber ?? payment?.id ?? enrollment.id,
-		trxId: payment?.bkashTrxId ?? null,
-		paidAt,
-	};
-};
 
 const getStudentProfileByUserId = async (userId: string) => {
 	const student = await prisma.studentProfile.findUnique({
@@ -959,39 +902,6 @@ const getEnrollmentById = async (
 	return enrollment;
 };
 
-const getEnrollmentInvoice = async (
-	userId: string,
-	role: Role,
-	enrollmentId: string,
-) => {
-	const enrollment = await getEnrollmentById(userId, role, enrollmentId);
-
-	const payment = enrollment.payment;
-
-	if (
-		!payment ||
-		(payment.status !== PaymentStatus.SUCCEEDED &&
-			payment.status !== PaymentStatus.REFUNDED)
-	) {
-		throw new AppError(
-			httpStatus.BAD_REQUEST,
-			"Invoice is only available after a successful payment",
-		);
-	}
-
-	const payload = buildInvoicePayload(enrollment, payment.updatedAt);
-	const invoiceBuffer = await buildEnrollmentInvoicePdf(payload);
-	const safeInvoiceNumber = payload.invoiceNumber.replace(
-		/[^A-Za-z0-9._-]/g,
-		"",
-	);
-
-	return {
-		buffer: invoiceBuffer,
-		filename: `invoice-${safeInvoiceNumber || enrollment.id}.pdf`,
-	};
-};
-
 const cancelEnrollment = async (
 	userId: string,
 	role: Role,
@@ -1114,7 +1024,6 @@ export const CourseRegistrationService = {
 	getMyEnrollments,
 	getAllEnrollments,
 	getEnrollmentById,
-	getEnrollmentInvoice,
 	cancelEnrollment,
 	updateRegistrationStatus,
 };

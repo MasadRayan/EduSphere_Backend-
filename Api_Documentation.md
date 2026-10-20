@@ -3313,14 +3313,14 @@ Students can only view their own enrollments.
 ## 5b. Download Enrollment Invoice
 
 ```
-GET /api/course-registrations/:id/invoice
+GET /api/invoices/enrollments/:enrollmentId
 ```
 
 ### Auth & Roles
 
 `STUDENT` · `ADMIN` · `SUPER_ADMIN`
 
-Returns the same PDF invoice that is attached to the confirmation email (`application/pdf` with `Content-Disposition: attachment`). Students can only download invoices for their own enrollments. The payment must be `SUCCEEDED` or `REFUNDED`.
+Served by the dedicated invoice module. Returns the same PDF invoice that is attached to the confirmation email (`application/pdf` with `Content-Disposition: attachment`). Students can only download invoices for their own enrollments. The payment must be `SUCCEEDED` or `REFUNDED`.
 
 | Status | Message |
 |--------|---------|
@@ -3442,7 +3442,7 @@ PATCH /api/course-registrations/:id/status
 | 3 | GET | `/api/course-registrations/my` | STUDENT | List my semester enrollments |
 | 4 | GET | `/api/course-registrations` | ADMIN, SUPER_ADMIN | List all enrollments |
 | 5 | GET | `/api/course-registrations/:id` | STUDENT, ADMIN, SUPER_ADMIN | Get one enrollment |
-| 5b | GET | `/api/course-registrations/:id/invoice` | STUDENT, ADMIN, SUPER_ADMIN | Download the invoice PDF |
+| 5b | GET | `/api/invoices/enrollments/:enrollmentId` | STUDENT, ADMIN, SUPER_ADMIN | Download the invoice PDF (invoice module) |
 | 6 | PATCH | `/api/course-registrations/:id/cancel` | STUDENT, ADMIN, SUPER_ADMIN | Cancel enrollment + refund |
 | 7 | PATCH | `/api/course-registrations/:id/status` | ADMIN, SUPER_ADMIN | Override registration status |
 

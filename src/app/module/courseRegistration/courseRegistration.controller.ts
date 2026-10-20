@@ -84,20 +84,6 @@ const getEnrollmentById = catchAsync(async (req: Request, res: Response) => {
 	});
 });
 
-const downloadInvoice = catchAsync(async (req: Request, res: Response) => {
-	const { buffer, filename } =
-		await CourseRegistrationService.getEnrollmentInvoice(
-			req.user!.userId,
-			req.user!.role,
-			req.params.id as string,
-		);
-
-	res.setHeader("Content-Type", "application/pdf");
-	res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-	res.setHeader("Content-Length", String(buffer.length));
-	res.send(buffer);
-});
-
 const cancelEnrollment = catchAsync(async (req: Request, res: Response) => {
 	const result = await CourseRegistrationService.cancelEnrollment(
 		req.user!.userId,
@@ -135,7 +121,6 @@ export const CourseRegistrationController = {
 	getMyEnrollments,
 	getAllEnrollments,
 	getEnrollmentById,
-	downloadInvoice,
 	cancelEnrollment,
 	updateRegistrationStatus,
 };
