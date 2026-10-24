@@ -7,7 +7,7 @@ const env = (key: string, fallback = "") => process.env[key] ?? fallback;
 
 export default {
 	node_env: env("NODE_ENV"),
-	port: env("PORT"),
+	port: env("PORT", "8000"),
 	database_url: env("DATABASE_URL"),
 	bak_url: env("BACKEND_URL", env("APP_URL")),
 	backend_url: env("BACKEND_URL", env("APP_URL")),
@@ -22,6 +22,7 @@ export default {
 	redis_password: env("REDIS_PASSWORD"),
 	redis_host: env("REDIS_HOST"),
 	redis_port: env("REDIS_PORT"),
+	redis_url: env("REDIS_URL"),
 	cloudinary_api_key: env("CLOUDINARY_API_KEY"),
 	cloudinary_api_secret: env("CLOUDINARY_API_SECRET"),
 	cloudinary_cloud_name: env("CLOUDINARY_CLOUD_NAME"),

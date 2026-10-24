@@ -61,7 +61,13 @@ app.use("/api/student", StudentRoutes);
 app.use("/api/instructor", InstructorRoutes);
 app.use("/api/invoices", InvoiceRoutes);
 
-// Basic route
+app.get("/health", (_req: Request, res: Response) => {
+	res.status(httpStatus.OK).json({
+		success: true,
+		status: "ok",
+	});
+});
+
 app.get("/", async (req: Request, res: Response) => {
 	res.status(httpStatus.OK).json({
 		success: true,
