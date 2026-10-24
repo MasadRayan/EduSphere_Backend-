@@ -3,15 +3,20 @@ import z from "zod";
 import { ExamType } from "../../../generated/prisma/enums";
 import { AppError } from "../../utils/AppError";
 
-const CreateExamZodSchema = z.object({
-	courseSectionId: z.string().min(1, "Course section is required"),
-	type: z.nativeEnum(ExamType),
-	date: z.coerce.date(),
-	totalMarks: z
-		.number()
-		.int("Total marks must be an integer")
-		.positive("Total marks must be a positive number"),
-});
+const CreateExamZodSchema = z
+	.object({
+		courseSectionId: z.string().min(1, "Course section is required"),
+		type: z.nativeEnum(ExamType),
+		date: z.coerce.date(),
+		totalMarks: z
+			.number()
+			.int("Total marks must be an integer")
+			.positive("Total marks must be a positive number"),
+	})
+	.refine((data) => data.date.getTime() >= Date.now(), {
+		message: "Exam date cannot be in the past",
+		path: ["date"],
+	});
 
 const UpdateExamZodSchema = z.object({
 	type: z.nativeEnum(ExamType).optional(),

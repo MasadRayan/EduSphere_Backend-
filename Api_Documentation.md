@@ -3599,7 +3599,7 @@ POST /api/exams
 |------------------|--------|----------|-------|
 | `courseSectionId`| string | Yes      | Existing course section |
 | `type`           | string | Yes      | `MIDTERM`, `FINAL`, `QUIZ`, `ASSIGNMENT` |
-| `date`           | string | Yes      | ISO date (`YYYY-MM-DDTHH:mm:ss.sssZ`) |
+| `date`           | string | Yes      | Future ISO date/time (`YYYY-MM-DDTHH:mm:ss.sssZ`); past values are rejected |
 | `totalMarks`     | number | Yes      | Positive integer |
 
 ### Demo Input
@@ -3608,7 +3608,7 @@ POST /api/exams
 {
   "courseSectionId": "sec11111-2222-3333-4444-555555555555",
   "type": "MIDTERM",
-  "date": "2026-04-15T10:00:00.000Z",
+  "date": "2027-04-15T10:00:00.000Z",
   "totalMarks": 30
 }
 ```
@@ -3623,6 +3623,7 @@ Returns the created exam including `courseSection` (→ `course`, `semester`, `i
 |--------|---------|
 | 403 | `"You are not assigned to this course section"` (instructor, wrong section) |
 | 404 | `"Course section not found"` |
+| 400 | `"Exam date cannot be in the past"` |
 | 400 | Validation error |
 
 ## 2. List Exams
@@ -3679,7 +3680,7 @@ At least one of:
 | Field        | Type   | Required | Rules |
 |--------------|--------|----------|-------|
 | `type`       | string | No       | `MIDTERM`, `FINAL`, `QUIZ`, `ASSIGNMENT` |
-| `date`       | string | No       | ISO date |
+| `date`       | string | No       | ISO date; past values are allowed so existing exams can be corrected |
 | `totalMarks` | number | No       | Positive integer |
 
 ### Demo Input
@@ -3687,7 +3688,7 @@ At least one of:
 ```json
 {
   "totalMarks": 40,
-  "date": "2026-04-16T10:00:00.000Z"
+  "date": "2027-04-16T10:00:00.000Z"
 }
 ```
 
